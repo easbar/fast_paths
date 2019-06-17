@@ -1,0 +1,15 @@
+[package]
+name = "fast_paths"
+version = "0.1.0"
+authors = ["easbar <easbar.mail@posteo.net>"]
+edition = "2018"
+description = "Fast shortest path calculations on directed graphs made possible by pre-processing the graph using Contraction Hierarchies"
+license = "Apache-2.0"
+
+[dependencies]
+bincode = "1.1.2"
+serde = { version = "1.0", features =["derive"] }
+log = "0.4"
+rand = "0.6"
+stopwatch = "0.0.7"
+priority-queue = "0.6.0"
