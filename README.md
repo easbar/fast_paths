@@ -108,6 +108,10 @@ The shortest path calculation time was averaged over 100k random routing queries
 - loop-edges (from node A to node A) will be ignored, because since we are only considering positive non-zero edge-weights they cannot be part of a shortest path 
 - in case the graph has duplicate edges (multiple edges from node A to node B) only the edge with the lowest weight will be considered
 
+### Special Thanks
+
+Thanks to [Dustin Carlino](http://github.com/dabreegster) from [abstreets](http://github.com/dabreegster/abstreet)!
+
 ### License
 
 Apache 2.0
