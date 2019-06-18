@@ -30,7 +30,7 @@ input_graph.freeze();
 
 // prepare the graph for fast shortest path calculations. note that you have to do this again if you want to change the
 // graph topology or any of the edge weights
-let fast_graph = fast_paths::prepare(&input_graph);
+let fast_path_graph = fast_paths::prepare(&input_graph);
 
 // calculate the shortest path between nodes with ID 8 and 6 
 let shortest_path = fast_paths::calc_path(&fast_path_graph, 8, 6);
