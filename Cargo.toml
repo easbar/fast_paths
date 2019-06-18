@@ -6,7 +6,7 @@ edition = "2018"
 description = "Fast shortest path calculations on directed graphs made possible by pre-processing the graph using Contraction Hierarchies"
 repository = "https://github.com/easbar/fast_paths"
 categories = ["algorithms", "data-structures", "science"]
-license = "Apache-2.0"
+license = "MIT/Apache-2.0"
 
 [badges]
 travis-ci = { repository = "easbar/fast_paths", branch = "master" }
