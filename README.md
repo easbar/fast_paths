@@ -33,7 +33,7 @@ input_graph.freeze();
 let fast_graph = fast_paths::prepare(&input_graph);
 
 // calculate the shortest path between nodes with ID 8 and 6 
-let shortest_path = fast_paths::calc_path(&fast_path_graph, 8, 6);
+let shortest_path = fast_paths::calc_path(&fast_graph, 8, 6);
 
 match shortest_path {
     Some(p) => {
@@ -58,15 +58,15 @@ For batch-wise calculation of shortest paths the method described above is ineff
 ```rust
 // ... see above
 // create a path calculator (note: not thread-safe, use a separate object per thread)
-let mut path_calculator = fast_paths::create_calculator(&fast_path_graph);
-let shortest_path = path_calculator.calc_path(&fast_path_graph, 8, 6);
+let mut path_calculator = fast_paths::create_calculator(&fast_graph);
+let shortest_path = path_calculator.calc_path(&fast_graph, 8, 6);
 ```
 
 ### Saving the prepared graph to disk 
 
 ```rust
-fast_paths::save_to_disk(&fast_path_graph, "fast_path_graph.fp");
-let fast_path_graph = fast_paths::load_from_disk("fast_path_graph.fp");
+fast_paths::save_to_disk(&fast_graph, "fast_graph.fp");
+let fast_graph = fast_paths::load_from_disk("fast_graph.fp");
 ```
 
 ### Preparing the graph after changes
