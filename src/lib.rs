@@ -36,6 +36,7 @@ mod constants;
 mod dijkstra;
 mod fast_graph;
 mod fast_graph_builder;
+#[cfg(test)]
 mod floyd_warshall;
 mod heap_item;
 mod input_graph;
