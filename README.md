@@ -102,7 +102,12 @@ For this to work `another_input_graph` must have the same number of nodes as `in
 |USA|time|13 min|1086|
 
 The shortest path calculation time was averaged over 100k random routing queries.
-  
+
+There are also some benchmarks using smaller maps included in the test suite. You can run them like this:
+```shell
+export RUST_TEST_THREADS=1; cargo test --release -- --ignored --nocapture
+```
+
 ### Graph limitations 
 
 - loop-edges (from node A to node A) will be ignored, because since we are only considering positive non-zero edge-weights they cannot be part of a shortest path 
