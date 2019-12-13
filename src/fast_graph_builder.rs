@@ -18,7 +18,7 @@
  */
 
 use std::cmp::max;
-use std::collections::HashSet;
+use std::collections::BTreeSet;
 
 use priority_queue::PriorityQueue;
 
@@ -91,7 +91,7 @@ impl FastGraphBuilder {
         let mut rank = 0;
         while !queue.is_empty() {
             let node = queue.pop().unwrap().0;
-            let mut neighbors = HashSet::new();
+            let mut neighbors = BTreeSet::new();
             for out_edge in &preparation_graph.out_edges[node] {
                 neighbors.insert(out_edge.adj_node);
                 self.fast_graph.edges_fwd.push(FastGraphEdge::new(

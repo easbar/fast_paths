@@ -87,13 +87,13 @@ pub fn get_node_ordering(fast_graph: &FastGraph) -> Vec<NodeId> {
 }
 
 /// Saves the given prepared graph to disk
-pub fn save_to_disk(fast_graph: &FastGraph, file_name: &str) -> Result<(), Box<Error>> {
+pub fn save_to_disk(fast_graph: &FastGraph, file_name: &str) -> Result<(), Box<dyn Error>> {
     let file = File::create(file_name)?;
     Ok(bincode::serialize_into(file, fast_graph)?)
 }
 
 /// Restores a prepared graph from disk
-pub fn load_from_disk(file_name: &str) -> Result<FastGraph, Box<Error>> {
+pub fn load_from_disk(file_name: &str) -> Result<FastGraph, Box<dyn Error>> {
     let file = File::open(file_name)?;
     Ok(bincode::deserialize_from(file)?)
 }
@@ -194,6 +194,23 @@ mod tests {
         assert_eq!(fast_graph.get_num_nodes(), loaded.get_num_nodes());
         assert_eq!(fast_graph.get_num_in_edges(), loaded.get_num_in_edges());
         assert_eq!(fast_graph.get_num_out_edges(), loaded.get_num_out_edges());
+    }
+
+    #[test]
+    fn deterministic_result() {
+        const NUM_NODES: usize = 50;
+        const MEAN_DEGREE: f32 = 2.0;
+
+        // Repeat a few times to reduce test flakiness.
+        for _ in 0..10 {
+            let mut rng = create_rng();
+            let input_graph = InputGraph::random(&mut rng, NUM_NODES, MEAN_DEGREE);
+            let serialized1 = bincode::serialize(&prepare(&input_graph)).unwrap();
+            let serialized2 = bincode::serialize(&prepare(&input_graph)).unwrap();
+            if serialized1 != serialized2 {
+                panic!("Preparing and serializing the same graph twice produced different results");
+            }
+        }
     }
 
     #[ignore]
