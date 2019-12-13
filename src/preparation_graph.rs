@@ -146,7 +146,7 @@ impl PreparationGraph {
 
     fn assert_valid_node_id(&self, node: NodeId) {
         assert!(
-            node >= 0 && node < self.num_nodes,
+            node < self.num_nodes,
             format!(
                 "invalid node id {}, must be in [0, {}[",
                 node, self.num_nodes
