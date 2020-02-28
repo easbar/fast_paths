@@ -4,6 +4,8 @@ The most famous algorithms used to calculate shortest paths are probably Dijkstr
 
 *Fast Paths* uses *Contraction Hierarchies*, one of the best known speed-up techniques for shortest path calculation. It is especially suited to calculate shortest paths in road networks, but can be used for any directed graph with positive, non-zero edge weights.
 
+This crate works in WASM environments.
+
 ### Installation
 
 In `Cargo.toml`
@@ -69,6 +71,8 @@ fast_paths::save_to_disk(&fast_graph, "fast_graph.fp");
 let fast_graph = fast_paths::load_from_disk("fast_graph.fp");
 ```
 
+`fast_paths` is completely deterministic, so if you create a contraction hierarchy from the same input, you'll always get exactly the same serialized output.
+
 ### Preparing the graph after changes
 
 The graph preparation can be done much faster using a fixed node ordering, which is just a permutation of node ids. This can be done like this:
@@ -112,6 +116,7 @@ export RUST_TEST_THREADS=1; cargo test --release -- --ignored --nocapture
 
 - loop-edges (from node A to node A) will be ignored, because since we are only considering positive non-zero edge-weights they cannot be part of a shortest path 
 - in case the graph has duplicate edges (multiple edges from node A to node B) only the edge with the lowest weight will be considered
+- up to 2^32 nodes, edges, and possible values for weight are supported. See [this issue](https://github.com/easbar/fast_paths/issues/12) for details.
 
 ### Special Thanks
 
