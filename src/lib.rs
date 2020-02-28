@@ -100,11 +100,10 @@ pub fn load_from_disk(file_name: &str) -> Result<FastGraph, Box<dyn Error>> {
 
 #[cfg(test)]
 mod tests {
-    use std::fs::remove_file;
-    use std::time::SystemTime;
-
     use rand::rngs::StdRng;
     use rand::Rng;
+    use std::fs::remove_file;
+    use std::time::SystemTime;
     use stopwatch::Stopwatch;
 
     use crate::constants::NodeId;
@@ -173,9 +172,12 @@ mod tests {
         if num_different_paths as f32 > 0.1 * NUM_QUERIES as f32 {
             assert!(
                 false,
-                format!("too many different paths: {}, out of {}, a few different \
-                paths can be expected because of unambiguous shortest paths, but if there are too \
-                many something is wrong", num_different_paths, NUM_QUERIES)
+                format!(
+                    "too many different paths: {}, out of {}, a few different paths can be expected \
+                    because of unambiguous shortest paths, but if there are too many something is \
+                    wrong",
+                    num_different_paths, NUM_QUERIES
+                )
             );
         }
     }
