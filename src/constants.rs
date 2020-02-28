@@ -21,7 +21,8 @@ pub type NodeId = usize;
 pub type EdgeId = usize;
 pub type Weight = usize;
 
-pub const INVALID_NODE: NodeId = std::usize::MAX;
-pub const INVALID_EDGE: EdgeId = std::usize::MAX;
-pub const WEIGHT_MAX: Weight = std::usize::MAX;
+// Deserializing u64::MAX breaks in wasm32-unknown-unknown, because usize is just 32 bits there.
+pub const INVALID_NODE: NodeId = std::u32::MAX as usize;
+pub const INVALID_EDGE: EdgeId = std::u32::MAX as usize;
+pub const WEIGHT_MAX: Weight = std::u32::MAX as usize;
 pub const WEIGHT_ZERO: Weight = 0;
