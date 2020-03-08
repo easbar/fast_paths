@@ -24,8 +24,8 @@ use std::error::Error;
 use std::fs::File;
 
 pub use crate::constants::*;
-pub use crate::fast_graph32::FastGraph32;
 pub use crate::fast_graph::FastGraph;
+pub use crate::fast_graph32::FastGraph32;
 pub use crate::fast_graph_builder::FastGraphBuilder;
 pub use crate::fast_graph_builder::Params;
 pub use crate::input_graph::Edge;
@@ -126,8 +126,8 @@ mod tests {
     use std::fs::remove_file;
     use std::time::SystemTime;
 
-    use rand::Rng;
     use rand::rngs::StdRng;
+    use rand::Rng;
     use stopwatch::Stopwatch;
 
     use crate::constants::NodeId;
