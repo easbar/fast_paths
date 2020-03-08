@@ -67,7 +67,6 @@ impl FastGraph32 {
     }
 }
 
-
 /// 32bit equivalent to `FastGraphEdge`, see `FastGraph32` docs.
 #[derive(Serialize, Deserialize, Debug)]
 pub struct FastGraphEdge32 {
@@ -82,7 +81,8 @@ fn usize_to_u32(int: usize) -> u32 {
     if int.eq(&std::usize::MAX) {
         return usize_to_u32(std::u32::MAX as usize);
     }
-    return u32::try_from(int).expect(format!("Could not convert {} to a 32bit integer", int).as_str());
+    return u32::try_from(int)
+        .expect(format!("Could not convert {} to a 32bit integer", int).as_str());
 }
 
 fn usize_to_u32_vec(vec: &Vec<usize>) -> Vec<u32> {
@@ -141,11 +141,15 @@ mod tests {
         let ranks = vec![286, 45, 480_001, std::usize::MAX, 4468];
         let edges_fwd = vec![
             FastGraphEdge::new(std::usize::MAX, 598, 48, std::usize::MAX, std::usize::MAX),
-            FastGraphEdge::new(std::usize::MAX, std::usize::MAX, std::usize::MAX, 4, std::usize::MAX),
+            FastGraphEdge::new(
+                std::usize::MAX,
+                std::usize::MAX,
+                std::usize::MAX,
+                4,
+                std::usize::MAX,
+            ),
         ];
-        let edges_bwd = vec![
-            FastGraphEdge::new(0, 1, 3, 4, std::usize::MAX),
-        ];
+        let edges_bwd = vec![FastGraphEdge::new(0, 1, 3, 4, std::usize::MAX)];
         let first_edge_ids_fwd = vec![1, std::usize::MAX, std::usize::MAX];
         let first_edge_ids_bwd = vec![1, std::usize::MAX, 5, std::usize::MAX, 9, 10];
 
@@ -190,7 +194,10 @@ mod tests {
         // briefly check back-conversion
         let g_from32 = g32.convert_to_usize();
         assert_eq!(g_from32.get_num_nodes(), 5);
-        assert_eq!(g_from32.ranks, vec![286, 45, 480_001, std::usize::MAX, 4468]);
+        assert_eq!(
+            g_from32.ranks,
+            vec![286, 45, 480_001, std::usize::MAX, 4468]
+        );
         assert_eq!(g_from32.first_edge_ids_fwd[2], std::usize::MAX);
         assert_eq!(g_from32.first_edge_ids_bwd[0], 1);
         assert_eq!(g_from32.first_edge_ids_bwd[1], std::usize::MAX);
