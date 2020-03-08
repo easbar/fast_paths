@@ -69,11 +69,12 @@ fast_paths::save_to_disk(&fast_graph, "fast_graph.fp");
 let fast_graph = fast_paths::load_from_disk("fast_graph.fp");
 ```
 
-To be able to use the graph in a 32bit WebAssembly environment it needs to be transformed to a 32bit representation when using a 64bit system. This can be achieved with these two methods. Using these methods will only work for graphs that do not exceed the 32bit limit. The resulting size on disk will be 50% less than when using `save_to_disk`, but 50% more RAM will be needed during the process of saving the graph to disk.
+To be able to use the graph in a 32bit WebAssembly environment it needs to be transformed to a 32bit representation when preparing it on a 64bit system. This can be achieved with the following two methods, but it will only work for graphs that do not exceed the 32bit limit.
 ```rust
 fast_paths::save_to_disk32(&fast_graph, "fast_graph32.fp");
 let fast_graph = fast_paths::load_from_disk32("fast_graph32.fp");
 ```
+Note that the resulting size on disk will be 50% less than when using `save_to_disk`, but 50% more RAM will be needed during the process of saving the graph to disk.
 
 ### Preparing the graph after changes
 
