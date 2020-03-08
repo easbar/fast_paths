@@ -69,6 +69,13 @@ fast_paths::save_to_disk(&fast_graph, "fast_graph.fp");
 let fast_graph = fast_paths::load_from_disk("fast_graph.fp");
 ```
 
+To be able to use the graph in a 32bit WebAssembly environment the graph needs to be transformed to a 32bit representation when using a 64bit system. This can be achieved
+with these two methods:
+```rust
+fast_paths::save_to_disk32(&fast_graph, "fast_graph32.fp");
+let fast_graph = fast_paths::load_from_disk32("fast_graph32.fp");
+```
+
 ### Preparing the graph after changes
 
 The graph preparation can be done much faster using a fixed node ordering, which is just a permutation of node ids. This can be done like this:
