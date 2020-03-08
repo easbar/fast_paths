@@ -213,6 +213,6 @@ mod tests {
         let num_nodes = 5;
         let mut g = FastGraph::new(num_nodes);
         g.ranks = vec![5_000_000_000];
-        let g32 = FastGraph32::new(&g);
+        FastGraph32::new(&g);
     }
 }
