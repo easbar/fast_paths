@@ -50,12 +50,12 @@ mod valid_flags;
 
 /// Prepares the given `InputGraph` for fast shortest path calculations.
 pub fn prepare(input_graph: &InputGraph) -> FastGraph {
-    return FastGraphBuilder::build(input_graph);
+    FastGraphBuilder::build(input_graph)
 }
 
 /// Like `prepare()`, but allows specifying some parameters used for the graph preparation.
 pub fn prepare_with_params(input_graph: &InputGraph, params: &Params) -> FastGraph {
-    return FastGraphBuilder::build_with_params(input_graph, params);
+    FastGraphBuilder::build_with_params(input_graph, params)
 }
 
 /// Prepares the given input graph using a fixed node ordering, which can be any permutation
@@ -66,13 +66,13 @@ pub fn prepare_with_order(
     input_graph: &InputGraph,
     order: &Vec<NodeId>,
 ) -> Result<FastGraph, String> {
-    return FastGraphBuilder::build_with_order(input_graph, order);
+    FastGraphBuilder::build_with_order(input_graph, order)
 }
 
 /// Calculates the shortest path from `source` to `target`.
 pub fn calc_path(fast_graph: &FastGraph, source: NodeId, target: NodeId) -> Option<ShortestPath> {
     let mut calc = PathCalculator::new(fast_graph.get_num_nodes());
-    return calc.calc_path(fast_graph, source, target);
+    calc.calc_path(fast_graph, source, target)
 }
 
 /// Creates a `PathCalculator` that can be used to run many shortest path calculations in a row.
@@ -118,7 +118,7 @@ pub fn save_to_disk32(fast_graph: &FastGraph, file_name: &str) -> Result<(), Box
 pub fn load_from_disk32(file_name: &str) -> Result<FastGraph, Box<dyn Error>> {
     let file = File::open(file_name)?;
     let r: Result<FastGraph32, Box<dyn Error>> = Ok(bincode::deserialize_from(file)?);
-    return r.map(|g| g.convert_to_usize());
+    r.map(|g| g.convert_to_usize())
 }
 
 #[cfg(test)]
