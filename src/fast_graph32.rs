@@ -63,7 +63,7 @@ impl FastGraph32 {
         g.first_edge_ids_fwd = u32_to_usize_vec(&self.first_edge_ids_fwd);
         g.edges_bwd = u32_to_usize_edges(&self.edges_bwd);
         g.first_edge_ids_bwd = u32_to_usize_vec(&self.first_edge_ids_bwd);
-        return g;
+        g
     }
 }
 
@@ -78,54 +78,59 @@ pub struct FastGraphEdge32 {
 }
 
 fn usize_to_u32(int: usize) -> u32 {
-    if int.eq(&std::usize::MAX) {
-        return usize_to_u32(std::u32::MAX as usize);
+    if int == std::usize::MAX {
+        usize_to_u32(std::u32::MAX as usize)
+    } else {
+        if let Ok(x) = u32::try_from(int) {
+            x
+        } else {
+            panic!("Could not convert {} to a 32-bit integer", int);
+        }
     }
-    return u32::try_from(int)
-        .expect(format!("Could not convert {} to a 32bit integer", int).as_str());
 }
 
 fn usize_to_u32_vec(vec: &Vec<usize>) -> Vec<u32> {
-    return vec.iter().map(|i| usize_to_u32(*i)).collect();
+    vec.iter().map(|i| usize_to_u32(*i)).collect()
 }
 
 fn usize_to_u32_edges(vec: &Vec<FastGraphEdge>) -> Vec<FastGraphEdge32> {
-    return vec.iter().map(|e| usize_to_u32_edge(e)).collect();
+    vec.iter().map(|e| usize_to_u32_edge(e)).collect()
 }
 
 fn usize_to_u32_edge(edge: &FastGraphEdge) -> FastGraphEdge32 {
-    return FastGraphEdge32 {
+    FastGraphEdge32 {
         base_node: usize_to_u32(edge.base_node),
         adj_node: usize_to_u32(edge.adj_node),
         weight: usize_to_u32(edge.weight),
         replaced_in_edge: usize_to_u32(edge.replaced_in_edge),
         replaced_out_edge: usize_to_u32(edge.replaced_out_edge),
-    };
+    }
 }
 
 fn u32_to_usize(int: u32) -> usize {
-    if int.eq(&std::u32::MAX) {
-        return std::usize::MAX;
+    if int == std::u32::MAX {
+        std::usize::MAX
+    } else {
+        int as usize
     }
-    return int as usize;
 }
 
 fn u32_to_usize_vec(vec: &Vec<u32>) -> Vec<usize> {
-    return vec.iter().map(|i| u32_to_usize(*i)).collect();
+    vec.iter().map(|i| u32_to_usize(*i)).collect()
 }
 
 fn u32_to_usize_edges(vec: &Vec<FastGraphEdge32>) -> Vec<FastGraphEdge> {
-    return vec.iter().map(|e| u32_to_usize_edge(e)).collect();
+    vec.iter().map(|e| u32_to_usize_edge(e)).collect()
 }
 
 fn u32_to_usize_edge(edge: &FastGraphEdge32) -> FastGraphEdge {
-    return FastGraphEdge {
+    FastGraphEdge {
         base_node: u32_to_usize(edge.base_node),
         adj_node: u32_to_usize(edge.adj_node),
         weight: u32_to_usize(edge.weight),
         replaced_in_edge: u32_to_usize(edge.replaced_in_edge),
         replaced_out_edge: u32_to_usize(edge.replaced_out_edge),
-    };
+    }
 }
 
 #[cfg(test)]

@@ -69,7 +69,7 @@ fast_paths::save_to_disk(&fast_graph, "fast_graph.fp");
 let fast_graph = fast_paths::load_from_disk("fast_graph.fp");
 ```
 
-To be able to use the graph in a 32bit WebAssembly environment it needs to be transformed to a 32bit representation when preparing it on a 64bit system. This can be achieved with the following two methods, but it will only work for graphs that do not exceed the 32bit limit.
+To be able to use the graph in a 32bit WebAssembly environment it needs to be transformed to a 32bit representation when preparing it on a 64bit system. This can be achieved with the following two methods, but it will only work for graphs that do not exceed the 32bit limit, i.e. the number of nodes and edges and all weights must be below 2^32.
 ```rust
 fast_paths::save_to_disk32(&fast_graph, "fast_graph32.fp");
 let fast_graph = fast_paths::load_from_disk32("fast_graph32.fp");
