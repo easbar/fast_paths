@@ -96,6 +96,10 @@ impl PathCalculator {
                 if curr.weight > best_weight {
                     break;
                 }
+                // stall on demand optimization
+                if self.is_stallable_fwd(graph, curr) {
+                    continue;
+                }
                 let begin = graph.begin_out_edges(curr.node_id);
                 let end = graph.end_out_edges(curr.node_id);
                 for edge_id in begin..end {
@@ -128,6 +132,10 @@ impl PathCalculator {
                 if curr.weight > best_weight {
                     break;
                 }
+                // stall on demand optimization
+                if self.is_stallable_bwd(graph, curr) {
+                    continue;
+                }
                 let begin = graph.begin_in_edges(curr.node_id);
                 let end = graph.end_in_edges(curr.node_id);
                 for edge_id in begin..end {
@@ -156,6 +164,34 @@ impl PathCalculator {
             let node_ids = self.extract_nodes(graph, start, end, meeting_node);
             return Some(ShortestPath::new(start, end, best_weight, node_ids));
         }
+    }
+
+    fn is_stallable_fwd(&self, graph: &FastGraph, curr: HeapItem) -> bool {
+        let begin = graph.begin_in_edges(curr.node_id);
+        let end = graph.end_in_edges(curr.node_id);
+        for edge_id in begin..end {
+            let adj = graph.edges_bwd[edge_id].adj_node;
+            let edge_weight = graph.edges_bwd[edge_id].weight;
+            let adj_weight = self.get_weight_fwd(adj);
+            if adj_weight != WEIGHT_MAX && adj_weight + edge_weight < curr.weight {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    fn is_stallable_bwd(&self, graph: &FastGraph, curr: HeapItem) -> bool {
+        let begin = graph.begin_out_edges(curr.node_id);
+        let end = graph.end_out_edges(curr.node_id);
+        for edge_id in begin..end {
+            let adj = graph.edges_fwd[edge_id].adj_node;
+            let edge_weight = graph.edges_fwd[edge_id].weight;
+            let adj_weight = self.get_weight_bwd(adj);
+            if adj_weight != WEIGHT_MAX && adj_weight + edge_weight < curr.weight {
+                return true;
+            }
+        }
+        return false;
     }
 
     fn extract_nodes(
