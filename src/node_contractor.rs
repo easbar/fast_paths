@@ -56,15 +56,13 @@ pub fn handle_shortcuts<F>(
 ) where
     F: FnMut(&mut PreparationGraph, Shortcut),
 {
-    dijkstra.avoid_node(node);
     for i in 0..graph.in_edges[node].len() {
         for j in 0..graph.out_edges[node].len() {
             let weight = graph.in_edges[node][i].weight + graph.out_edges[node][j].weight;
-            dijkstra.set_max_weight(weight);
             let in_node = graph.in_edges[node][i].adj_node;
             let out_node = graph.out_edges[node][j].adj_node;
             let best_weight = dijkstra.calc_weight(graph, in_node, out_node);
-            if best_weight.is_none() {
+            if best_weight.is_some() && best_weight.unwrap() == weight {
                 handle_shortcut(graph, Shortcut::new(in_node, out_node, node, weight))
             }
         }
@@ -133,7 +131,7 @@ mod tests {
         g.add_edge(0, 3, 1);
         g.add_edge(3, 2, 1);
         let shortcuts = calc_shortcuts(&mut g, 1);
-        assert_eq!(0, shortcuts.len());
+        assert_eq!(1, shortcuts.len());
     }
 
     #[test]
@@ -146,12 +144,11 @@ mod tests {
         g.add_edge(1, 2, 1);
         g.add_edge(0, 3, 1);
         g.add_edge(3, 1, 1);
-        let _shortcuts = calc_shortcuts(&mut g, 1);
+        let shortcuts = calc_shortcuts(&mut g, 1);
         // performance: there is no need for a shortcut 0->1->2, because there is already the
         // (required) shortcut 3->1->2
-        let _expected_shortcuts = vec![Shortcut::new(3, 2, 1, 2)];
-        // todo: handle this case for better performance (less shortcuts)
-        //        assert_eq!(expected_shortcuts, handler.shortcuts);
+        let expected_shortcuts = vec![Shortcut::new(3, 2, 1, 2)];
+        assert_eq!(expected_shortcuts, shortcuts);
     }
 
     #[test]
