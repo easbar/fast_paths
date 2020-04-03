@@ -12,11 +12,11 @@ license = "MIT/Apache-2.0"
 travis-ci = { repository = "easbar/fast_paths", branch = "master" }
 
 [dependencies]
-bincode = "1.1.2"
 serde = { version = "1.0", features =["derive"] }
 log = "0.4"
-rand = "0.6"
 priority-queue = "0.6.0"
 
 [dev-dependencies]
+bincode = "1.1.2"
+rand = "0.6"
 stopwatch = "0.0.7"

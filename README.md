@@ -64,16 +64,21 @@ let shortest_path = path_calculator.calc_path(&fast_graph, 8, 6);
 
 ### Saving the prepared graph to disk 
 
+`FastGraph` implements standard [Serde](https://serde.rs/) serialization.
+
+To be able to use the graph in a 32bit WebAssembly environment, it needs to be transformed to a 32bit representation when preparing it on a 64bit system. This can be achieved with the following two methods, but it will only work for graphs that do not exceed the 32bit limit, i.e. the number of nodes and edges and all weights must be below 2^32.
+
 ```rust
-fast_paths::save_to_disk(&fast_graph, "fast_graph.fp");
-let fast_graph = fast_paths::load_from_disk("fast_graph.fp");
+use fast_paths::{deserialize_32, serialize_32, FastGraph};
+
+#[derive(Serialize, Deserialize)]
+struct YourData {
+    #[serde(serialize_with = "serialize_32", deserialize_with = "deserialize_32")]
+    graph: FastGraph,
+    // the rest of your struct
+}
 ```
 
-To be able to use the graph in a 32bit WebAssembly environment it needs to be transformed to a 32bit representation when preparing it on a 64bit system. This can be achieved with the following two methods, but it will only work for graphs that do not exceed the 32bit limit, i.e. the number of nodes and edges and all weights must be below 2^32.
-```rust
-fast_paths::save_to_disk32(&fast_graph, "fast_graph32.fp");
-let fast_graph = fast_paths::load_from_disk32("fast_graph32.fp");
-```
 Note that the resulting size on disk will be 50% less than when using `save_to_disk`, but 50% more RAM will be needed during the process of saving the graph to disk.
 
 ### Preparing the graph after changes
@@ -122,7 +127,7 @@ export RUST_TEST_THREADS=1; cargo test --release -- --ignored --nocapture
 
 ### Special Thanks
 
-Thanks to [Dustin Carlino](http://github.com/dabreegster) from [abstreets](http://github.com/dabreegster/abstreet)!
+Thanks to [Dustin Carlino](http://github.com/dabreegster) from [A/B Street](http://github.com/dabreegster/abstreet)!
 
 
 #### License
