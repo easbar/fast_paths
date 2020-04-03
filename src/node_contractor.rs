@@ -22,6 +22,8 @@ use crate::constants::Weight;
 use crate::dijkstra::Dijkstra;
 use crate::fast_graph_builder::Params;
 use crate::preparation_graph::PreparationGraph;
+use std::collections::BTreeSet;
+use std::collections::BinaryHeap;
 
 /// removes all edges incident to `node` from the graph and adds shortcuts between all neighbors
 /// of `node` such that all shortest paths are preserved
@@ -56,14 +58,42 @@ pub fn handle_shortcuts<F>(
 ) where
     F: FnMut(&mut PreparationGraph, Shortcut),
 {
+    let mut heap =
+        BinaryHeap::with_capacity(graph.in_edges[node].len() + graph.out_edges[node].len());
+    let mut neighbors = BTreeSet::new();
     for i in 0..graph.in_edges[node].len() {
+        let in_node = graph.in_edges[node][i].adj_node;
+        neighbors.insert(in_node);
         for j in 0..graph.out_edges[node].len() {
-            let weight = graph.in_edges[node][i].weight + graph.out_edges[node][j].weight;
-            let in_node = graph.in_edges[node][i].adj_node;
             let out_node = graph.out_edges[node][j].adj_node;
-            let best_weight = dijkstra.calc_weight(graph, in_node, out_node);
-            if best_weight.is_some() && best_weight.unwrap() == weight {
-                handle_shortcut(graph, Shortcut::new(in_node, out_node, node, weight))
+            neighbors.insert(out_node);
+
+            let weight = graph.in_edges[node][i].weight + graph.out_edges[node][j].weight;
+            heap.push((weight, (i, j)));
+        }
+    }
+
+    while !heap.is_empty() {
+        let (weight, (i, j)) = heap.pop().unwrap();
+        let in_node = graph.in_edges[node][i].adj_node;
+        let out_node = graph.out_edges[node][j].adj_node;
+        let path = dijkstra.calc_path(graph, in_node, out_node);
+        if path.is_some() {
+            let shortest_path = path.unwrap();
+            let best_weight = shortest_path.get_weight();
+            let nodes = shortest_path.get_nodes();
+            if best_weight == weight {
+                let mut create_shortcut = true;
+                // skip the in and out nodes
+                for path_node in &nodes[1..(nodes.len() - 1)] {
+                    println!("node {:?}", path_node);
+                    if neighbors.contains(&path_node) {
+                        create_shortcut = false;
+                    }
+                }
+                if create_shortcut {
+                    handle_shortcut(graph, Shortcut::new(in_node, out_node, node, weight))
+                }
             }
         }
     }
@@ -113,10 +143,10 @@ mod tests {
         g.add_edge(2, 4, 1);
         let shortcuts = calc_shortcuts(&mut g, 2);
         let expected_shortcuts = vec![
-            Shortcut::new(0, 3, 2, 4),
-            Shortcut::new(0, 4, 2, 2),
             Shortcut::new(1, 3, 2, 5),
+            Shortcut::new(0, 3, 2, 4),
             Shortcut::new(1, 4, 2, 3),
+            Shortcut::new(0, 4, 2, 2),
         ];
         assert_eq!(expected_shortcuts, shortcuts);
     }
@@ -131,7 +161,7 @@ mod tests {
         g.add_edge(0, 3, 1);
         g.add_edge(3, 2, 1);
         let shortcuts = calc_shortcuts(&mut g, 1);
-        assert_eq!(1, shortcuts.len());
+        assert_eq!(0, shortcuts.len());
     }
 
     #[test]
