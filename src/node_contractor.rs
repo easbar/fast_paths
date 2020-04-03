@@ -63,9 +63,8 @@ pub fn handle_shortcuts<F>(
             dijkstra.set_max_weight(weight);
             let in_node = graph.in_edges[node][i].adj_node;
             let out_node = graph.out_edges[node][j].adj_node;
-            // todo: optimize: no need to return the full path here
-            let shortest_path = dijkstra.calc_path(graph, in_node, out_node);
-            if shortest_path.is_none() {
+            let best_weight = dijkstra.calc_weight(graph, in_node, out_node);
+            if best_weight.is_none() {
                 handle_shortcut(graph, Shortcut::new(in_node, out_node, node, weight))
             }
         }
