@@ -56,28 +56,15 @@ pub fn handle_shortcuts<F>(
 ) where
     F: FnMut(&mut PreparationGraph, Shortcut),
 {
-    dijkstra.avoid_node(node);
-    let mut pairs = Vec::new();
     for i in 0..graph.in_edges[node].len() {
         for j in 0..graph.out_edges[node].len() {
             let weight = graph.in_edges[node][i].weight + graph.out_edges[node][j].weight;
-            let t = (
-                graph.in_edges[node][i].adj_node,
-                graph.out_edges[node][j].adj_node,
-                weight
-            );
-            pairs.push(t);
-        }
-    }
-    pairs.sort_by(|a, b| a.2.cmp(&b.2));
-    for p in pairs {
-        let weight = p.2;
-        dijkstra.set_max_weight(weight);
-        let in_node = p.0;
-        let out_node = p.1;
-        let best_weight = dijkstra.calc_weight(graph, in_node, out_node);
-        if best_weight.is_none() {
-            handle_shortcut(graph, Shortcut::new(in_node, out_node, node, weight))
+            let in_node = graph.in_edges[node][i].adj_node;
+            let out_node = graph.out_edges[node][j].adj_node;
+            let best_weight = dijkstra.calc_weight(graph, in_node, out_node);
+            if best_weight.is_some() && best_weight.unwrap() >= weight {
+                handle_shortcut(graph, Shortcut::new(in_node, out_node, node, weight))
+            }
         }
     }
 }
