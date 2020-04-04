@@ -122,11 +122,9 @@ impl Dijkstra {
             for i in 0..graph.out_edges[curr.node_id].len() {
                 let adj = graph.out_edges[curr.node_id][i].adj_node;
                 let edge_weight = graph.out_edges[curr.node_id][i].weight;
-                if adj == self.avoid_node {
-                    continue;
-                }
                 let weight = curr.weight + edge_weight;
-                if weight < self.get_weight(adj) {
+                if (weight == self.get_weight(adj) && adj != self.avoid_node) ||
+                    weight < self.get_weight(adj) {
                     self.update_node(adj, weight, curr.node_id);
                     self.heap.push(HeapItem::new(weight, adj));
                 }

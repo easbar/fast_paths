@@ -56,6 +56,7 @@ pub fn handle_shortcuts<F>(
 ) where
     F: FnMut(&mut PreparationGraph, Shortcut),
 {
+    dijkstra.avoid_node(node);
     for i in 0..graph.in_edges[node].len() {
         for j in 0..graph.out_edges[node].len() {
             let weight = graph.in_edges[node][i].weight + graph.out_edges[node][j].weight;
