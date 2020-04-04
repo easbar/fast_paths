@@ -123,10 +123,12 @@ impl Dijkstra {
                 let adj = graph.out_edges[curr.node_id][i].adj_node;
                 let edge_weight = graph.out_edges[curr.node_id][i].weight;
                 let weight = curr.weight + edge_weight;
-                if (weight == self.get_weight(adj) && adj != self.avoid_node) ||
-                    weight < self.get_weight(adj) {
+                if weight < self.get_weight(adj) {
                     self.update_node(adj, weight, curr.node_id);
                     self.heap.push(HeapItem::new(weight, adj));
+                }
+                if adj == end && self.data[adj].parent == self.avoid_node && curr.node_id != self.avoid_node && weight == self.get_weight(adj) {
+                    self.update_node(adj, weight, curr.node_id);
                 }
             }
             self.data[curr.node_id].settled = true;
