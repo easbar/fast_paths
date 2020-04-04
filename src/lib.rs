@@ -225,7 +225,7 @@ mod tests {
             &Params::default(),
             845493338,
             30265,
-        )
+        );
     }
 
     #[ignore]
@@ -286,12 +286,44 @@ mod tests {
         );
     }
 
+    #[test]
+    fn test_nyc_and_save_order() {
+        println!("Preparing NYC and saving node ordering");
+        let fast_graph = run_performance_test(
+            &InputGraph::from_file("USA-road-t.NY.gr"),
+            &Params::default(),
+            67076802401,
+            0,
+        );
+        let order = get_node_ordering(&fast_graph);
+        let file = File::create("nyc_node_ordering");
+        bincode::serialize_into(file.unwrap(), &order).expect("could not save node ordering to disk");
+    }
+
+    #[test]
+    fn test_nyc_with_saved_order() {
+        println!("Running performance test for NYC time (fixed node ordering)");
+        let input_graph = InputGraph::from_file("USA-road-t.NY.gr");
+
+        let file = File::open("nyc_node_ordering");
+        let order = bincode::deserialize_from(file.unwrap());
+        let fast_graph = prepare_with_order(&input_graph, &order.unwrap()).unwrap();
+        print_fast_graph_stats(&fast_graph);
+        let mut path_calculator = PathCalculator::new(fast_graph.get_num_nodes());
+        do_run_performance_test(
+            &mut |s, t| path_calculator.calc_path(&fast_graph, s, t),
+            input_graph.get_num_nodes(),
+            67076802401,
+            0,
+        );
+    }
+
     fn run_performance_test(
         input_graph: &InputGraph,
         params: &Params,
         expected_checksum: usize,
         expected_num_not_found: usize,
-    ) {
+    ) -> FastGraph {
         let mut fast_graph = FastGraph::new(1);
         prepare_algo(
             &mut |input_graph| fast_graph = prepare_with_params(input_graph, params),
@@ -305,6 +337,7 @@ mod tests {
             expected_checksum,
             expected_num_not_found,
         );
+        fast_graph
     }
 
     fn print_fast_graph_stats(fast_graph: &FastGraph) {
