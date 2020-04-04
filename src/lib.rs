@@ -88,7 +88,9 @@ pub fn get_node_ordering(fast_graph: &FastGraph) -> Vec<NodeId> {
 }
 
 /// When serializing a `FastGraph` in a larger struct, use `#[serde(serialize_with =
-/// "fast_paths::serialize_32`)]` to transform the graph to a 32-bit representation.
+/// "fast_paths::serialize_32`)]` to transform the graph to a 32-bit representation. This will use
+/// 50% more RAM than serializing without transformation, but the resulting size will be 50% less.
+/// It will panic if the graph has more than 2^32 nodes or edges or values for weight.
 pub fn serialize_32<S: Serializer>(fg: &FastGraph, s: S) -> Result<S::Ok, S::Error> {
     FastGraph32::new(fg).serialize(s)
 }

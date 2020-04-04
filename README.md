@@ -62,7 +62,7 @@ let mut path_calculator = fast_paths::create_calculator(&fast_graph);
 let shortest_path = path_calculator.calc_path(&fast_graph, 8, 6);
 ```
 
-### Saving the prepared graph to disk 
+### Serializing the prepared graph
 
 `FastGraph` implements standard [Serde](https://serde.rs/) serialization.
 
@@ -78,8 +78,6 @@ struct YourData {
     // the rest of your struct
 }
 ```
-
-Note that the resulting size on disk will be 50% less than when using `save_to_disk`, but 50% more RAM will be needed during the process of saving the graph to disk.
 
 ### Preparing the graph after changes
 
