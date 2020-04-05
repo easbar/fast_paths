@@ -20,8 +20,7 @@
 #[macro_use]
 extern crate log;
 
-use std::error::Error;
-use std::fs::File;
+use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
 pub use crate::constants::*;
 pub use crate::fast_graph::FastGraph;
@@ -88,42 +87,27 @@ pub fn get_node_ordering(fast_graph: &FastGraph) -> Vec<NodeId> {
     fast_graph.get_node_ordering()
 }
 
-/// Saves the given prepared graph to disk
-pub fn save_to_disk(fast_graph: &FastGraph, file_name: &str) -> Result<(), Box<dyn Error>> {
-    let file = File::create(file_name)?;
-    Ok(bincode::serialize_into(file, fast_graph)?)
+/// When serializing a `FastGraph` in a larger struct, use `#[serde(serialize_with =
+/// "fast_paths::serialize_32`)]` to transform the graph to a 32-bit representation. This will use
+/// 50% more RAM than serializing without transformation, but the resulting size will be 50% less.
+/// It will panic if the graph has more than 2^32 nodes or edges or values for weight.
+pub fn serialize_32<S: Serializer>(fg: &FastGraph, s: S) -> Result<S::Ok, S::Error> {
+    FastGraph32::new(fg).serialize(s)
 }
 
-/// Restores a prepared graph from disk
-pub fn load_from_disk(file_name: &str) -> Result<FastGraph, Box<dyn Error>> {
-    let file = File::open(file_name)?;
-    Ok(bincode::deserialize_from(file)?)
-}
-
-/// Saves the given prepared graph to disk thereby enforcing a 32bit representation no matter whether
-/// the system in use uses 32 or 64bit. This is useful when creating the graph on a 64bit system and
-/// afterwards loading it on a 32bit system.
-/// Note: Using this method requires an extra +50% of RAM while storing the graph (even though
-/// the graph will use 50% *less* disk space when it has been saved.
-pub fn save_to_disk32(fast_graph: &FastGraph, file_name: &str) -> Result<(), Box<dyn Error>> {
-    let fast_graph32 = &FastGraph32::new(fast_graph);
-    let file = File::create(file_name)?;
-    Ok(bincode::serialize_into(file, fast_graph32)?)
-}
-
-/// Loads a graph from disk that was saved in 32bit representation, i.e. using save_to_disk32. The
-/// graph will use usize to store integers, so most commonly either 32 or 64bits per integer
-/// depending on the system in use.
-/// Note: Using this method requires an extra +50% RAM while loading the graph.
-pub fn load_from_disk32(file_name: &str) -> Result<FastGraph, Box<dyn Error>> {
-    let file = File::open(file_name)?;
-    let r: Result<FastGraph32, Box<dyn Error>> = Ok(bincode::deserialize_from(file)?);
-    r.map(|g| g.convert_to_usize())
+/// When deserializing a `FastGraph` in a larger struct, use `#[serde(deserialize_with =
+/// "fast_paths::deserialize_32`)]` to transform the graph from a 32-bit representation to the
+/// current platform's supported size. This is necessary when serializing on a 64-bit system and
+/// deserializing on a 32-bit system, such as WASM.
+pub fn deserialize_32<'de, D: Deserializer<'de>>(d: D) -> Result<FastGraph, D::Error> {
+    let fg32 = <FastGraph32>::deserialize(d)?;
+    Ok(fg32.convert_to_usize())
 }
 
 #[cfg(test)]
 mod tests {
-    use std::fs::remove_file;
+    use std::error::Error;
+    use std::fs::{remove_file, File};
     use std::time::SystemTime;
 
     use rand::rngs::StdRng;
@@ -436,5 +420,38 @@ mod tests {
 
     fn create_seed() -> u64 {
         SystemTime::now().elapsed().unwrap().as_nanos() as u64
+    }
+
+    /// Saves the given prepared graph to disk
+    fn save_to_disk(fast_graph: &FastGraph, file_name: &str) -> Result<(), Box<dyn Error>> {
+        let file = File::create(file_name)?;
+        Ok(bincode::serialize_into(file, fast_graph)?)
+    }
+
+    /// Restores a prepared graph from disk
+    fn load_from_disk(file_name: &str) -> Result<FastGraph, Box<dyn Error>> {
+        let file = File::open(file_name)?;
+        Ok(bincode::deserialize_from(file)?)
+    }
+
+    /// Saves the given prepared graph to disk thereby enforcing a 32bit representation no matter whether
+    /// the system in use uses 32 or 64bit. This is useful when creating the graph on a 64bit system and
+    /// afterwards loading it on a 32bit system.
+    /// Note: Using this method requires an extra +50% of RAM while storing the graph (even though
+    /// the graph will use 50% *less* disk space when it has been saved.
+    fn save_to_disk32(fast_graph: &FastGraph, file_name: &str) -> Result<(), Box<dyn Error>> {
+        let fast_graph32 = &FastGraph32::new(fast_graph);
+        let file = File::create(file_name)?;
+        Ok(bincode::serialize_into(file, fast_graph32)?)
+    }
+
+    /// Loads a graph from disk that was saved in 32bit representation, i.e. using save_to_disk32. The
+    /// graph will use usize to store integers, so most commonly either 32 or 64bits per integer
+    /// depending on the system in use.
+    /// Note: Using this method requires an extra +50% RAM while loading the graph.
+    fn load_from_disk32(file_name: &str) -> Result<FastGraph, Box<dyn Error>> {
+        let file = File::open(file_name)?;
+        let r: Result<FastGraph32, Box<dyn Error>> = Ok(bincode::deserialize_from(file)?);
+        r.map(|g| g.convert_to_usize())
     }
 }
