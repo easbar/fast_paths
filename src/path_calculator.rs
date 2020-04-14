@@ -173,7 +173,10 @@ impl PathCalculator {
             let adj = graph.edges_bwd[edge_id].adj_node;
             let edge_weight = graph.edges_bwd[edge_id].weight;
             let adj_weight = self.get_weight_fwd(adj);
-            if adj_weight != WEIGHT_MAX && adj_weight + edge_weight < curr.weight {
+            if graph.ranks[adj] > graph.ranks[curr.node_id]
+                && adj_weight != WEIGHT_MAX
+                && adj_weight + edge_weight <= curr.weight
+            {
                 return true;
             }
         }
@@ -187,7 +190,10 @@ impl PathCalculator {
             let adj = graph.edges_fwd[edge_id].adj_node;
             let edge_weight = graph.edges_fwd[edge_id].weight;
             let adj_weight = self.get_weight_bwd(adj);
-            if adj_weight != WEIGHT_MAX && adj_weight + edge_weight < curr.weight {
+            if graph.ranks[adj] > graph.ranks[curr.node_id]
+                && adj_weight != WEIGHT_MAX
+                && adj_weight + edge_weight <= curr.weight
+            {
                 return true;
             }
         }
