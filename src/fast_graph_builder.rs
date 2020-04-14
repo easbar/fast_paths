@@ -118,7 +118,7 @@ impl FastGraphBuilder {
             }
             self.fast_graph.first_edge_ids_bwd[rank + 1] = self.fast_graph.get_num_in_edges();
 
-            self.fast_graph.ranks[rank] = node;
+            self.fast_graph.ranks[node] = rank;
             node_contractor::contract_node(&mut preparation_graph, &mut dijkstra, node);
             for neighbor in neighbors {
                 levels[neighbor] = max(levels[neighbor], levels[node] + 1);
@@ -169,7 +169,7 @@ impl FastGraphBuilder {
             }
             self.fast_graph.first_edge_ids_bwd[rank + 1] = self.fast_graph.get_num_in_edges();
 
-            self.fast_graph.ranks[rank] = node;
+            self.fast_graph.ranks[node] = rank;
             node_contractor::contract_node(&mut preparation_graph, &mut dijkstra, node);
             //            println!("contracted node {} / {}, num edges fwd: {}, num edges bwd: {}", rank+1, self.num_nodes, self.fast_graph.get_num_out_edges(), self.fast_graph.get_num_in_edges());
         }
@@ -177,11 +177,6 @@ impl FastGraphBuilder {
     }
 
     fn finish_contraction(&mut self) {
-        let ranks_copy = self.fast_graph.ranks.clone();
-        for i in 0..ranks_copy.len() {
-            self.fast_graph.ranks[ranks_copy[i]] = i;
-        }
-
         for i in 0..self.num_nodes {
             for edge_id in self.fast_graph.begin_out_edges(i)..self.fast_graph.end_out_edges(i) {
                 let c = self.center_nodes_fwd[edge_id];
