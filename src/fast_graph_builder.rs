@@ -133,7 +133,13 @@ impl FastGraphBuilder {
                 ) as Weight;
                 queue.change_priority(&neighbor, Reverse(priority));
             }
-            //            println!("contracted node {} / {}, num edges fwd: {}, num edges bwd: {}", rank+1, self.num_nodes, self.fast_graph.get_num_out_edges(), self.fast_graph.get_num_in_edges());
+            debug!(
+                "contracted node {} / {}, num edges fwd: {}, num edges bwd: {}",
+                rank + 1,
+                self.num_nodes,
+                self.fast_graph.get_num_out_edges(),
+                self.fast_graph.get_num_in_edges()
+            );
             rank += 1;
         }
         self.finish_contraction();
@@ -173,7 +179,13 @@ impl FastGraphBuilder {
 
             self.fast_graph.ranks[rank] = node;
             node_contractor::contract_node(&mut preparation_graph, &mut dijkstra, node);
-            //            println!("contracted node {} / {}, num edges fwd: {}, num edges bwd: {}", rank+1, self.num_nodes, self.fast_graph.get_num_out_edges(), self.fast_graph.get_num_in_edges());
+            debug!(
+                "contracted node {} / {}, num edges fwd: {}, num edges bwd: {}",
+                rank + 1,
+                self.num_nodes,
+                self.fast_graph.get_num_out_edges(),
+                self.fast_graph.get_num_in_edges()
+            );
         }
         self.finish_contraction();
     }

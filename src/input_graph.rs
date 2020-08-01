@@ -109,7 +109,7 @@ impl InputGraph {
         if len_before != self.edges.len() {
             warn!(
                 "There were {} duplicate edges, only the ones with lowest weight were kept",
-                self.edges.len() - len_before
+                len_before - self.edges.len()
             );
         }
     }
