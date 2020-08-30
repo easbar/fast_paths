@@ -100,17 +100,18 @@ pub fn load_from_disk(file_name: &str) -> Result<FastGraph, Box<dyn Error>> {
 
 #[cfg(test)]
 mod tests {
-    use rand::rngs::StdRng;
-    use rand::Rng;
     use std::fs::remove_file;
     use std::time::SystemTime;
+
+    use rand::Rng;
+    use rand::rngs::StdRng;
     use stopwatch::Stopwatch;
 
     use crate::constants::NodeId;
     use crate::dijkstra::Dijkstra;
     use crate::fast_graph::FastGraph;
     use crate::floyd_warshall::FloydWarshall;
-    use crate::path_calculator::PathCalculator;
+    use crate::path_calculator::{BWD_POLLS, FWD_POLLS, PathCalculator};
     use crate::preparation_graph::PreparationGraph;
 
     use super::*;
@@ -267,6 +268,58 @@ mod tests {
 
     #[ignore]
     #[test]
+    fn run_performance_test_dist_nyc() {
+        println!("Running performance test for New York City dist");
+        // DIMACS road network for New York City using the road distance as weight
+        run_performance_test(
+            &InputGraph::from_file("USA-road-d.NY.gr"),
+            &Params::default(),
+            50093653183,
+            0,
+        )
+    }
+
+    #[ignore]
+    #[test]
+    fn run_performance_test_time_nyc() {
+        println!("Running performance test for New York City time");
+        // DIMACS road network for New York City using the travel time as weight
+        run_performance_test(
+            &InputGraph::from_file("USA-road-t.NY.gr"),
+            &Params::default(),
+            67076802401,
+            0,
+        );
+    }
+
+    #[ignore]
+    #[test]
+    fn run_performance_test_dist_cali() {
+        println!("Running performance test for California&Nevada dist");
+        // DIMACS road network for California&Nevada using the road distance as weight
+        run_performance_test(
+            &InputGraph::from_file("USA-road-d.CAL.gr"),
+            &Params::default(),
+            498599500458,
+            0,
+        )
+    }
+
+    #[ignore]
+    #[test]
+    fn run_performance_test_time_cali() {
+        println!("Running performance test for California&Nevada time");
+        // DIMACS road network for California&Nevada using the travel time as weight
+        run_performance_test(
+            &InputGraph::from_file("USA-road-t.CAL.gr"),
+            &Params::default(),
+            622658447541,
+            0,
+        );
+    }
+
+    #[ignore]
+    #[test]
     fn run_performance_test_dist_fixed_ordering() {
         println!("Running performance test for Bremen dist (fixed node ordering)");
         let input_graph = InputGraph::from_file("meta/test_maps/bremen_dist.gr");
@@ -323,8 +376,8 @@ mod tests {
     }
 
     pub fn prepare_algo<F>(preparation: &mut F, input_graph: &InputGraph)
-    where
-        F: FnMut(&InputGraph),
+        where
+            F: FnMut(&InputGraph),
     {
         let mut time = Stopwatch::new();
         time.start();
@@ -382,6 +435,16 @@ mod tests {
             expected_num_not_found, num_not_found,
             "invalid number of paths not found"
         );
+        unsafe {
+            println!(
+                "fwd-polls ..... {}",
+                FWD_POLLS
+            );
+            println!(
+                "bwd-polls ..... {}",
+                BWD_POLLS
+            );
+        }
     }
 
     fn create_rng() -> StdRng {
