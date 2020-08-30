@@ -20,11 +20,11 @@
 #[macro_use]
 extern crate log;
 
-use std::error::Error;
-use std::fs::File;
+use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
 pub use crate::constants::*;
 pub use crate::fast_graph::FastGraph;
+pub use crate::fast_graph32::FastGraph32;
 pub use crate::fast_graph_builder::FastGraphBuilder;
 pub use crate::fast_graph_builder::Params;
 pub use crate::input_graph::Edge;
@@ -35,6 +35,7 @@ pub use crate::shortest_path::ShortestPath;
 mod constants;
 mod dijkstra;
 mod fast_graph;
+mod fast_graph32;
 mod fast_graph_builder;
 #[cfg(test)]
 mod floyd_warshall;
@@ -48,12 +49,12 @@ mod valid_flags;
 
 /// Prepares the given `InputGraph` for fast shortest path calculations.
 pub fn prepare(input_graph: &InputGraph) -> FastGraph {
-    return FastGraphBuilder::build(input_graph);
+    FastGraphBuilder::build(input_graph)
 }
 
 /// Like `prepare()`, but allows specifying some parameters used for the graph preparation.
 pub fn prepare_with_params(input_graph: &InputGraph, params: &Params) -> FastGraph {
-    return FastGraphBuilder::build_with_params(input_graph, params);
+    FastGraphBuilder::build_with_params(input_graph, params)
 }
 
 /// Prepares the given input graph using a fixed node ordering, which can be any permutation
@@ -64,13 +65,13 @@ pub fn prepare_with_order(
     input_graph: &InputGraph,
     order: &Vec<NodeId>,
 ) -> Result<FastGraph, String> {
-    return FastGraphBuilder::build_with_order(input_graph, order);
+    FastGraphBuilder::build_with_order(input_graph, order)
 }
 
 /// Calculates the shortest path from `source` to `target`.
 pub fn calc_path(fast_graph: &FastGraph, source: NodeId, target: NodeId) -> Option<ShortestPath> {
     let mut calc = PathCalculator::new(fast_graph.get_num_nodes());
-    return calc.calc_path(fast_graph, source, target);
+    calc.calc_path(fast_graph, source, target)
 }
 
 /// Creates a `PathCalculator` that can be used to run many shortest path calculations in a row.
@@ -86,25 +87,31 @@ pub fn get_node_ordering(fast_graph: &FastGraph) -> Vec<NodeId> {
     fast_graph.get_node_ordering()
 }
 
-/// Saves the given prepared graph to disk
-pub fn save_to_disk(fast_graph: &FastGraph, file_name: &str) -> Result<(), Box<dyn Error>> {
-    let file = File::create(file_name)?;
-    Ok(bincode::serialize_into(file, fast_graph)?)
+/// When serializing a `FastGraph` in a larger struct, use `#[serde(serialize_with =
+/// "fast_paths::serialize_32`)]` to transform the graph to a 32-bit representation. This will use
+/// 50% more RAM than serializing without transformation, but the resulting size will be 50% less.
+/// It will panic if the graph has more than 2^32 nodes or edges or values for weight.
+pub fn serialize_32<S: Serializer>(fg: &FastGraph, s: S) -> Result<S::Ok, S::Error> {
+    FastGraph32::new(fg).serialize(s)
 }
 
-/// Restores a prepared graph from disk
-pub fn load_from_disk(file_name: &str) -> Result<FastGraph, Box<dyn Error>> {
-    let file = File::open(file_name)?;
-    Ok(bincode::deserialize_from(file)?)
+/// When deserializing a `FastGraph` in a larger struct, use `#[serde(deserialize_with =
+/// "fast_paths::deserialize_32`)]` to transform the graph from a 32-bit representation to the
+/// current platform's supported size. This is necessary when serializing on a 64-bit system and
+/// deserializing on a 32-bit system, such as WASM.
+pub fn deserialize_32<'de, D: Deserializer<'de>>(d: D) -> Result<FastGraph, D::Error> {
+    let fg32 = <FastGraph32>::deserialize(d)?;
+    Ok(fg32.convert_to_usize())
 }
 
 #[cfg(test)]
 mod tests {
-    use std::fs::remove_file;
+    use std::error::Error;
+    use std::fs::{remove_file, File};
     use std::time::SystemTime;
 
-    use rand::Rng;
     use rand::rngs::StdRng;
+    use rand::Rng;
     use stopwatch::Stopwatch;
 
     use crate::constants::NodeId;
@@ -194,6 +201,22 @@ mod tests {
         save_to_disk(&fast_graph, "example.fp").expect("writing to disk failed");
         let loaded = load_from_disk("example.fp").unwrap();
         remove_file("example.fp").expect("deleting file failed");
+        assert_eq!(fast_graph.get_num_nodes(), loaded.get_num_nodes());
+        assert_eq!(fast_graph.get_num_in_edges(), loaded.get_num_in_edges());
+        assert_eq!(fast_graph.get_num_out_edges(), loaded.get_num_out_edges());
+    }
+
+    #[test]
+    fn save_to_and_load_from_disk_32() {
+        let mut g = InputGraph::new();
+        g.add_edge(0, 5, 6);
+        g.add_edge(5, 2, 1);
+        g.add_edge(2, 3, 4);
+        g.freeze();
+        let fast_graph = prepare(&g);
+        save_to_disk32(&fast_graph, "example32.fp").expect("writing to disk failed");
+        let loaded = load_from_disk32("example32.fp").unwrap();
+        remove_file("example32.fp").expect("deleting file failed");
         assert_eq!(fast_graph.get_num_nodes(), loaded.get_num_nodes());
         assert_eq!(fast_graph.get_num_in_edges(), loaded.get_num_in_edges());
         assert_eq!(fast_graph.get_num_out_edges(), loaded.get_num_out_edges());
@@ -324,8 +347,8 @@ mod tests {
     }
 
     pub fn prepare_algo<F>(preparation: &mut F, input_graph: &InputGraph)
-        where
-            F: FnMut(&InputGraph),
+    where
+        F: FnMut(&InputGraph),
     {
         let mut time = Stopwatch::new();
         time.start();
@@ -397,5 +420,38 @@ mod tests {
 
     fn create_seed() -> u64 {
         SystemTime::now().elapsed().unwrap().as_nanos() as u64
+    }
+
+    /// Saves the given prepared graph to disk
+    fn save_to_disk(fast_graph: &FastGraph, file_name: &str) -> Result<(), Box<dyn Error>> {
+        let file = File::create(file_name)?;
+        Ok(bincode::serialize_into(file, fast_graph)?)
+    }
+
+    /// Restores a prepared graph from disk
+    fn load_from_disk(file_name: &str) -> Result<FastGraph, Box<dyn Error>> {
+        let file = File::open(file_name)?;
+        Ok(bincode::deserialize_from(file)?)
+    }
+
+    /// Saves the given prepared graph to disk thereby enforcing a 32bit representation no matter whether
+    /// the system in use uses 32 or 64bit. This is useful when creating the graph on a 64bit system and
+    /// afterwards loading it on a 32bit system.
+    /// Note: Using this method requires an extra +50% of RAM while storing the graph (even though
+    /// the graph will use 50% *less* disk space when it has been saved.
+    fn save_to_disk32(fast_graph: &FastGraph, file_name: &str) -> Result<(), Box<dyn Error>> {
+        let fast_graph32 = &FastGraph32::new(fast_graph);
+        let file = File::create(file_name)?;
+        Ok(bincode::serialize_into(file, fast_graph32)?)
+    }
+
+    /// Loads a graph from disk that was saved in 32bit representation, i.e. using save_to_disk32. The
+    /// graph will use usize to store integers, so most commonly either 32 or 64bits per integer
+    /// depending on the system in use.
+    /// Note: Using this method requires an extra +50% RAM while loading the graph.
+    fn load_from_disk32(file_name: &str) -> Result<FastGraph, Box<dyn Error>> {
+        let file = File::open(file_name)?;
+        let r: Result<FastGraph32, Box<dyn Error>> = Ok(bincode::deserialize_from(file)?);
+        r.map(|g| g.convert_to_usize())
     }
 }

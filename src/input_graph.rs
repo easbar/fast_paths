@@ -22,8 +22,11 @@ use std::fmt;
 use std::fs::File;
 use std::io::{BufRead, BufReader};
 
+#[cfg(test)]
 use rand::rngs::StdRng;
+#[cfg(test)]
 use rand::Rng;
+
 use serde::{Deserialize, Serialize};
 
 use crate::constants::NodeId;
@@ -45,6 +48,7 @@ impl InputGraph {
         }
     }
 
+    #[cfg(test)]
     pub fn random(rng: &mut StdRng, num_nodes: usize, mean_degree: f32) -> Self {
         InputGraph::build_random_graph(rng, num_nodes, mean_degree)
     }
@@ -105,7 +109,7 @@ impl InputGraph {
         if len_before != self.edges.len() {
             warn!(
                 "There were {} duplicate edges, only the ones with lowest weight were kept",
-                self.edges.len() - len_before
+                len_before - self.edges.len()
             );
         }
     }
@@ -153,6 +157,7 @@ impl InputGraph {
     }
 
     /// Builds a random graph, mostly used for testing purposes
+    #[cfg(test)]
     fn build_random_graph(rng: &mut StdRng, num_nodes: usize, mean_degree: f32) -> InputGraph {
         let num_edges = (mean_degree * num_nodes as f32) as usize;
         let mut result = InputGraph::new();

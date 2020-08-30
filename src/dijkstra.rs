@@ -20,7 +20,7 @@
 use std::collections::BinaryHeap;
 
 use crate::constants::Weight;
-use crate::constants::{NodeId, INVALID_NODE, WEIGHT_MAX};
+use crate::constants::{NodeId, INVALID_NODE, WEIGHT_MAX, WEIGHT_ZERO};
 use crate::heap_item::HeapItem;
 use crate::preparation_graph::PreparationGraph;
 use crate::shortest_path::ShortestPath;
@@ -59,12 +59,36 @@ impl Dijkstra {
         self.max_weight = weight;
     }
 
+    #[allow(dead_code)]
     pub fn calc_path(
         &mut self,
         graph: &PreparationGraph,
         start: NodeId,
         end: NodeId,
     ) -> Option<ShortestPath> {
+        self.do_calc_path(graph, start, end);
+        self.build_path(start, end)
+    }
+
+    pub fn calc_weight(
+        &mut self,
+        graph: &PreparationGraph,
+        start: NodeId,
+        end: NodeId,
+    ) -> Option<Weight> {
+        self.do_calc_path(graph, start, end);
+        if start == end {
+            return Some(WEIGHT_ZERO);
+        }
+        let weight = self.get_final_weight(end);
+        return if weight == WEIGHT_MAX {
+            None
+        } else {
+            Some(weight)
+        };
+    }
+
+    fn do_calc_path(&mut self, graph: &PreparationGraph, start: NodeId, end: NodeId) {
         assert_eq!(
             graph.get_num_nodes(),
             self.num_nodes,
@@ -75,7 +99,7 @@ impl Dijkstra {
             "path calculation must not start or end with avoided node"
         );
         if start == end {
-            return Some(ShortestPath::singular(start));
+            return;
         }
         if start != self.start_node {
             self.heap.clear();
@@ -84,7 +108,7 @@ impl Dijkstra {
             self.heap.push(HeapItem::new(0, start));
         }
         if self.is_settled(end) {
-            return self.build_path(start, end);
+            return;
         }
         self.start_node = start;
 
@@ -115,31 +139,37 @@ impl Dijkstra {
                 break;
             }
         }
-
-        return self.build_path(start, end);
     }
 
     fn build_path(&mut self, start: NodeId, end: NodeId) -> Option<ShortestPath> {
-        if !self.valid_flags.is_valid(end) ||
-            // if max weight is exceeded we might have found some path to the end node, but since
-            // it is not necessarily the shortest we return no path also in this case
-            self.data[end].weight > self.max_weight
-        {
+        if start == end {
+            return Some(ShortestPath::singular(start));
+        }
+        let weight = self.get_final_weight(end);
+        if weight == WEIGHT_MAX {
             return None;
         }
-        let mut result = Vec::new();
+        let mut path = Vec::new();
         let mut node = end;
         while self.data[node].parent != INVALID_NODE {
-            result.push(node);
+            path.push(node);
             node = self.data[node].parent;
         }
-        result.push(start);
-        Some(ShortestPath::new(
-            start,
-            end,
-            self.data[end].weight,
-            result.iter().rev().cloned().collect(),
-        ))
+        path.push(start);
+        path = path.iter().rev().cloned().collect();
+        Some(ShortestPath::new(start, end, weight, path))
+    }
+
+    fn get_final_weight(&mut self, end: usize) -> usize {
+        if !self.valid_flags.is_valid(end) ||
+            // if max_weight is exceeded we might have found some path to the end node, but since
+            // it is not necessarily the shortest we return WEIGHT_MAX (not found) also in this case
+            self.data[end].weight > self.max_weight
+        {
+            WEIGHT_MAX
+        } else {
+            self.data[end].weight
+        }
     }
 
     fn update_node(&mut self, node: NodeId, weight: Weight, parent: NodeId) {
@@ -303,6 +333,7 @@ mod tests {
         target: NodeId,
     ) {
         assert_eq!(dijkstra.calc_path(&graph, source, target), None);
+        assert_eq!(dijkstra.calc_weight(&graph, source, target), None);
     }
 
     fn assert_path(
@@ -317,5 +348,6 @@ mod tests {
             dijkstra.calc_path(&graph, source, target),
             Some(ShortestPath::new(source, target, weight, nodes))
         );
+        assert_eq!(dijkstra.calc_weight(&graph, source, target), Some(weight));
     }
 }

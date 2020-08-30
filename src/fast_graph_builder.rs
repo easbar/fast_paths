@@ -17,7 +17,7 @@
  * under the License.
  */
 
-use std::cmp::max;
+use std::cmp::{max, Reverse};
 use std::collections::BTreeSet;
 
 use priority_queue::PriorityQueue;
@@ -79,17 +79,19 @@ impl FastGraphBuilder {
         let mut levels = vec![0; self.num_nodes];
         let mut queue = PriorityQueue::new();
         for node in 0..self.num_nodes {
-            let priority = -node_contractor::calc_relevance(
+            let priority = node_contractor::calc_relevance(
                 &mut preparation_graph,
                 params,
                 &mut dijkstra,
                 node,
                 0,
-            );
-            queue.push(node, priority as Weight);
+            ) as Weight;
+            queue.push(node, Reverse(priority));
         }
         let mut rank = 0;
         while !queue.is_empty() {
+            // This normally yields the greatest priority, but since we use Reverse, it's the
+            // least.
             let node = queue.pop().unwrap().0;
             let mut neighbors = BTreeSet::new();
             for out_edge in &preparation_graph.out_edges[node] {
@@ -122,16 +124,22 @@ impl FastGraphBuilder {
             node_contractor::contract_node(&mut preparation_graph, &mut dijkstra, node);
             for neighbor in neighbors {
                 levels[neighbor] = max(levels[neighbor], levels[node] + 1);
-                let priority = -node_contractor::calc_relevance(
+                let priority = node_contractor::calc_relevance(
                     &mut preparation_graph,
                     params,
                     &mut dijkstra,
                     neighbor,
                     levels[neighbor],
                 ) as Weight;
-                queue.change_priority(&neighbor, priority);
+                queue.change_priority(&neighbor, Reverse(priority));
             }
-            //            println!("contracted node {} / {}, num edges fwd: {}, num edges bwd: {}", rank+1, self.num_nodes, self.fast_graph.get_num_out_edges(), self.fast_graph.get_num_in_edges());
+            debug!(
+                "contracted node {} / {}, num edges fwd: {}, num edges bwd: {}",
+                rank + 1,
+                self.num_nodes,
+                self.fast_graph.get_num_out_edges(),
+                self.fast_graph.get_num_in_edges()
+            );
             rank += 1;
         }
         self.finish_contraction();
@@ -171,7 +179,13 @@ impl FastGraphBuilder {
 
             self.fast_graph.ranks[rank] = node;
             node_contractor::contract_node(&mut preparation_graph, &mut dijkstra, node);
-            //            println!("contracted node {} / {}, num edges fwd: {}, num edges bwd: {}", rank+1, self.num_nodes, self.fast_graph.get_num_out_edges(), self.fast_graph.get_num_in_edges());
+            debug!(
+                "contracted node {} / {}, num edges fwd: {}, num edges bwd: {}",
+                rank + 1,
+                self.num_nodes,
+                self.fast_graph.get_num_out_edges(),
+                self.fast_graph.get_num_in_edges()
+            );
         }
         self.finish_contraction();
     }
