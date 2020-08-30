@@ -29,10 +29,6 @@ use crate::heap_item::HeapItem;
 use crate::shortest_path::ShortestPath;
 use crate::valid_flags::ValidFlags;
 
-// todo: remove this again
-pub static mut FWD_POLLS: usize = 0;
-pub static mut BWD_POLLS: usize = 0;
-
 pub struct PathCalculator {
     num_nodes: usize,
     data_fwd: Vec<Data>,
@@ -94,7 +90,6 @@ impl PathCalculator {
                     break;
                 }
                 let curr = self.heap_fwd.pop().unwrap();
-                unsafe { FWD_POLLS += 1; }
                 if self.is_settled_fwd(curr.node_id) {
                     continue;
                 }
@@ -131,7 +126,6 @@ impl PathCalculator {
                     break;
                 }
                 let curr = self.heap_bwd.pop().unwrap();
-                unsafe { BWD_POLLS += 1; }
                 if self.is_settled_bwd(curr.node_id) {
                     continue;
                 }
