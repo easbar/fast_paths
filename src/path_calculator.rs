@@ -29,6 +29,7 @@ use crate::heap_item::HeapItem;
 use crate::shortest_path::ShortestPath;
 use crate::valid_flags::ValidFlags;
 
+// todo: remove this again
 pub static mut FWD_POLLS: usize = 0;
 pub static mut BWD_POLLS: usize = 0;
 
@@ -101,9 +102,9 @@ impl PathCalculator {
                     break;
                 }
                 // stall on demand optimization
-                // if self.is_stallable_fwd(graph, curr) {
-                //     continue;
-                // }
+                if self.is_stallable_fwd(graph, curr) {
+                    continue;
+                }
                 let begin = graph.begin_out_edges(curr.node_id);
                 let end = graph.end_out_edges(curr.node_id);
                 for edge_id in begin..end {
@@ -138,9 +139,9 @@ impl PathCalculator {
                     break;
                 }
                 // stall on demand optimization
-                // if self.is_stallable_bwd(graph, curr) {
-                //     continue;
-                // }
+                if self.is_stallable_bwd(graph, curr) {
+                    continue;
+                }
                 let begin = graph.begin_in_edges(curr.node_id);
                 let end = graph.end_in_edges(curr.node_id);
                 for edge_id in begin..end {
