@@ -32,7 +32,7 @@ use serde::{Deserialize, Serialize};
 use crate::constants::NodeId;
 use crate::constants::Weight;
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Clone)]
 pub struct InputGraph {
     edges: Vec<Edge>,
     num_nodes: usize,
@@ -210,7 +210,7 @@ impl fmt::Debug for InputGraph {
     }
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Copy, Clone)]
 pub struct Edge {
     pub from: NodeId,
     pub to: NodeId,

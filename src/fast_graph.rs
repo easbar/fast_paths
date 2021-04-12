@@ -23,7 +23,7 @@ use serde::Serialize;
 use crate::constants::Weight;
 use crate::constants::{EdgeId, NodeId, INVALID_EDGE};
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct FastGraph {
     num_nodes: usize,
     pub(crate) ranks: Vec<usize>,
@@ -83,7 +83,7 @@ impl FastGraph {
     }
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone, Copy)]
 pub struct FastGraphEdge {
     // todo: the base_node is 'redundant' for the routing query so to say, but makes the implementation easier for now
     // and can still be removed at a later time, we definitely need this information on original
