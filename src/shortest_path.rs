@@ -22,7 +22,7 @@ use crate::constants::Weight;
 use crate::constants::WEIGHT_MAX;
 use crate::constants::WEIGHT_ZERO;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct ShortestPath {
     source: NodeId,
     target: NodeId,

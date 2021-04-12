@@ -80,7 +80,7 @@ fn add_shortcut(graph: &mut PreparationGraph, shortcut: Shortcut) {
     );
 }
 
-#[derive(Eq, PartialEq, Debug)]
+#[derive(Eq, PartialEq, Debug, Copy, Clone)]
 pub struct Shortcut {
     from: NodeId,
     to: NodeId,
