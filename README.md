@@ -98,20 +98,20 @@ For this to work `another_input_graph` must have the same number of nodes as `in
 
 |area|number of nodes|number of edges|
 |-|-|-|
-|New York|264.346|733.846|
-|California&Nevada|1.890.815|4.630.444|
-|USA|23.947.347|57.708.624|
+|New York|264.347|730.100|
+|California&Nevada|1.890.816|4.630.444|
+|USA|23.947.348|57.708.624|
 
 |graph|metric|preparation time|average query time (micros)|
 |-|-|-|-|
-|NY city|distance|24 s|162|
-|CAL&NV|distance|100 s|430|
-|USA|distance|35 min|3980|
-|NY city|time|14 s|77|
-|CAL&NV|time|62 s|222|
-|USA|time|13 min|1086|
+|NY city|distance|19 s|108|
+|CAL&NV|distance|85 s|243|
+|USA|distance|28 min|1452|
+|NY city|time|12 s|54|
+|CAL&NV|time|54 s|149|
+|USA|time|12 min|856|
 
-The shortest path calculation time was averaged over 100k random routing queries.
+The shortest path calculation time was averaged over 100k random routing queries. The benchmarks were run using Rust 1.50.0
 
 There are also some benchmarks using smaller maps included in the test suite. You can run them like this:
 ```shell
