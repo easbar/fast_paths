@@ -1,2 +1,11 @@
+0.2.0 add clone and copy derives, #26
+      faster fast_graph building
+      faster queries (stall on demand optimization), #18
+      fix serious performance regression for Rust >=1.45, #21
+      remove rand and bincode dependencies, #17
+      allow storing the graph for 32bit systems on a 64bit system, #14
+      WebAssembly compatibility, #11
+      deterministic fast_graph building, #10
+      license change to dual MIT/Apache 2.0, #4
 0.1.1 adds travis and meta information to Cargo.toml
 0.1.0 initial version
