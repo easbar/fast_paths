@@ -147,7 +147,7 @@ impl PreparationGraph {
     fn assert_valid_node_id(&self, node: NodeId) {
         if node >= self.num_nodes {
             panic!(
-                "invalid node id {}, must be in [0, {}]",
+                "invalid node id {}, must be in [0, {})",
                 node, self.num_nodes
             );
         }
