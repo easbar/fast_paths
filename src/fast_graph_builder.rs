@@ -227,7 +227,7 @@ impl FastGraphBuilder {
                 return edge_id;
             }
         }
-        panic!["could not find out-edge id"]
+        panic!("could not find out-edge id")
     }
 
     fn get_in_edge_id(&self, node: NodeId, adj_node: NodeId) -> EdgeId {
@@ -236,7 +236,7 @@ impl FastGraphBuilder {
                 return edge_id;
             }
         }
-        panic!["could not find in-edge id"]
+        panic!("could not find in-edge id")
     }
 }
 

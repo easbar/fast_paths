@@ -178,14 +178,11 @@ mod tests {
             }
         }
         if num_different_paths as f32 > 0.1 * NUM_QUERIES as f32 {
-            assert!(
-                false,
-                format!(
-                    "too many different paths: {}, out of {}, a few different paths can be expected \
+            panic!(
+                "too many different paths: {}, out of {}, a few different paths can be expected \
                     because of unambiguous shortest paths, but if there are too many something is \
                     wrong",
-                    num_different_paths, NUM_QUERIES
-                )
+                num_different_paths, NUM_QUERIES
             );
         }
     }
