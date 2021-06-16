@@ -74,6 +74,21 @@ pub fn calc_path(fast_graph: &FastGraph, source: NodeId, target: NodeId) -> Opti
     calc.calc_path(fast_graph, source, target)
 }
 
+/// Calculates the shortest path from any of the `sources` to a single `target`.
+///
+/// The path returned will start at the source node that's closest to `target`. An additional
+/// weight for each source can be specified.
+///
+/// TODO: Support multiple targets.
+pub fn calc_path_multiple_endpoints(
+    fast_graph: &FastGraph,
+    sources: Vec<(NodeId, Weight)>,
+    target: NodeId,
+) -> Option<ShortestPath> {
+    let mut calc = PathCalculator::new(fast_graph.get_num_nodes());
+    calc.calc_path_multiple_endpoints(fast_graph, sources, target)
+}
+
 /// Creates a `PathCalculator` that can be used to run many shortest path calculations in a row.
 /// This is the preferred way to calculate shortest paths in case you are calculating more than
 /// one path. Use one `PathCalculator` for each thread.
@@ -184,6 +199,71 @@ mod tests {
                     wrong",
                 num_different_paths, NUM_QUERIES
             );
+        }
+    }
+
+    #[test]
+    fn multi_source_routing_on_random_graph() {
+        const REPEATS: usize = 100;
+        for _ in 0..REPEATS {
+            const NUM_NODES: usize = 50;
+            const NUM_QUERIES: usize = 1_000;
+            const MEAN_DEGREE: f32 = 2.0;
+            const NUM_SOURCES: usize = 3;
+
+            let mut rng = create_rng();
+            let input_graph = InputGraph::random(&mut rng, NUM_NODES, MEAN_DEGREE);
+            debug!("random graph: \n {:?}", input_graph);
+            let fast_graph = prepare(&input_graph);
+            let mut path_calculator = create_calculator(&fast_graph);
+
+            let dijkstra_graph = PreparationGraph::from_input_graph(&input_graph);
+            let mut dijkstra = Dijkstra::new(input_graph.get_num_nodes());
+
+            let mut num_different_paths = 0;
+            for _ in 0..NUM_QUERIES {
+                // This may pick duplicate source nodes; that shouldn't break anything.
+                let sources: Vec<(NodeId, Weight)> = (0..NUM_SOURCES)
+                    .map(|_| (rng.gen_range(0, input_graph.get_num_nodes()), 0))
+                    .collect();
+                let target = rng.gen_range(0, input_graph.get_num_nodes());
+                let path_fast = path_calculator
+                    .calc_path_multiple_endpoints(&fast_graph, sources.clone(), target)
+                    .unwrap_or(ShortestPath::none(sources[0].0, target));
+                let dijkstra_paths: Vec<ShortestPath> = sources
+                    .iter()
+                    .flat_map(|(source, _)| dijkstra.calc_path(&dijkstra_graph, *source, target))
+                    .collect();
+
+                // It's likely that there are multiple shortest paths, from different source nodes.
+                // Compare every Dijkstra's path with the one CH path.
+                let mut found_match = false;
+                for path_dijkstra in dijkstra_paths {
+                    if path_dijkstra.get_weight() > path_fast.get_weight() {
+                        assert_ne!(path_dijkstra.get_source(), path_fast.get_source(), "\nDijkstra found a path from {} to {} with cost {}, but the CH multi-source found the same path with cost {}.\nFailing graph:\n{:?}", path_fast.get_source(), target, path_dijkstra.get_weight(), path_fast.get_weight(), input_graph);
+                    }
+                    if path_dijkstra.get_weight() < path_fast.get_weight() {
+                        panic!("Dijkstra found a path from {} to {} with cost {}, but the CH multi-source found a higher weight path from {} to {} with cost {}.\nFailing graph:\n{:?}", path_dijkstra.get_source(), target, path_dijkstra.get_weight(), path_fast.get_source(), target, path_fast.get_weight(), input_graph);
+                    }
+                    if path_dijkstra.get_source() == path_fast.get_source() {
+                        found_match = path_dijkstra.get_weight() == path_fast.get_weight();
+                        if path_dijkstra.get_nodes() != path_fast.get_nodes() {
+                            num_different_paths += 1;
+                        }
+                    }
+                }
+                if path_fast.is_found() && !found_match {
+                    panic!("CH multi-source found a path from {} to {} with cost {}, but no Dijkstra's path started from that source.\nFailing graph:\n{:?}", path_fast.get_source(), target, path_fast.get_weight(), input_graph);
+                }
+            }
+            if num_different_paths as f32 > 0.1 * NUM_QUERIES as f32 {
+                panic!(
+                    "too many different paths: {}, out of {}, a few different paths can be expected \
+                        because of unambiguous shortest paths, but if there are too many something is \
+                        wrong",
+                    num_different_paths, NUM_QUERIES
+                );
+            }
         }
     }
 
