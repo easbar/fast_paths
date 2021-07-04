@@ -88,15 +88,16 @@ impl PathCalculator {
         let mut best_weight = WEIGHT_MAX;
         let mut meeting_node = INVALID_NODE;
 
-        let end = ends[0].0;
-        starts
-            .iter()
-            .filter(|(id, weight)| *id == end && *weight < WEIGHT_MAX)
-            .min_by_key(|(_, weight)| weight)
-            .map(|(_, weight)| {
-                best_weight = *weight;
-                meeting_node = end;
-            });
+        for (start_node, start_weight) in &starts {
+            for (end_node, end_weight) in &ends {
+                if *start_node == *end_node && *start_weight < WEIGHT_MAX && *end_weight < WEIGHT_MAX {
+                    if *start_weight + *end_weight < best_weight {
+                        best_weight = *start_weight + *end_weight;
+                        meeting_node = *end_node;
+                    }
+                }
+            }
+        }
 
         for (id, weight) in starts {
             if weight < self.get_weight_fwd(id) {
@@ -111,7 +112,7 @@ impl PathCalculator {
             if weight < self.get_weight_bwd(id) {
                 // ... same here
                 self.update_node_bwd(id, weight, id, INVALID_EDGE);
-                self.heap_bwd.push(HeapItem::new(0, id));
+                self.heap_bwd.push(HeapItem::new(weight, id));
             }
         }
 

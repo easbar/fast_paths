@@ -463,6 +463,66 @@ mod tests {
             vec![2, 4, 3],
             5,
         );
+        // two different options for target, with initial weight
+        assert_path_multiple_sources_and_targets(
+            &mut path_calculator,
+            &fast_graph,
+            vec![(2, 0)],
+            vec![(0, 0), (3, 1)],
+            vec![2, 4, 3],
+            6,
+        );
+        assert_path_multiple_sources_and_targets(
+            &mut path_calculator,
+            &fast_graph,
+            vec![(2, 0)],
+            vec![(0, 0), (3, 3)],
+            vec![2, 1, 0],
+            7,
+        );
+        // start==end
+        assert_path_multiple_sources_and_targets(
+            &mut path_calculator,
+            &fast_graph,
+            vec![(4, 0)],
+            vec![(4, 3), (4, 1)],
+            vec![4],
+            1
+        )
+    }
+
+    #[test]
+    fn multiple_sources_and_targets() {
+        // 0 -- 1 -- 2 -- 3 -- 4
+        // 5 -- 6 --/ \-- 7 -- 8
+        let mut input_graph = InputGraph::new();
+        input_graph.add_edge_bidir(0, 1, 1);
+        input_graph.add_edge_bidir(1, 2, 2);
+        input_graph.add_edge_bidir(2, 3, 3);
+        input_graph.add_edge_bidir(3, 4, 4);
+        input_graph.add_edge_bidir(5, 6, 5);
+        input_graph.add_edge_bidir(6, 2, 6);
+        input_graph.add_edge_bidir(2, 7, 7);
+        input_graph.add_edge_bidir(7, 8, 8);
+        input_graph.freeze();
+        let fast_graph = prepare(&input_graph);
+        let mut path_calculator = create_calculator(&fast_graph);
+        assert_path_multiple_sources_and_targets(
+            &mut path_calculator,
+            &fast_graph,
+            vec![(1, 7), (6, 2), (5, 6)],
+            vec![(3, 1), (4, 9), (5, 7)],
+            vec![6, 2, 3],
+            12
+        );
+        assert_path_multiple_sources_and_targets(
+            &mut path_calculator,
+            &fast_graph,
+            vec![(1, 7), (6, 2)],
+            vec![(1, 9), (6, 3)],
+            vec![6],
+            5
+        );
     }
 
     fn assert_path_multiple_sources_and_targets(
