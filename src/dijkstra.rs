@@ -81,11 +81,11 @@ impl Dijkstra {
             return Some(WEIGHT_ZERO);
         }
         let weight = self.get_final_weight(end);
-        return if weight == WEIGHT_MAX {
+        if weight == WEIGHT_MAX {
             None
         } else {
             Some(weight)
-        };
+        }
     }
 
     fn do_calc_path(&mut self, graph: &PreparationGraph, start: NodeId, end: NodeId) {

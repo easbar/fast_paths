@@ -80,12 +80,10 @@ pub struct FastGraphEdge32 {
 fn usize_to_u32(int: usize) -> u32 {
     if int == std::usize::MAX {
         usize_to_u32(std::u32::MAX as usize)
+    } else if let Ok(x) = u32::try_from(int) {
+        x
     } else {
-        if let Ok(x) = u32::try_from(int) {
-            x
-        } else {
-            panic!("Could not convert {} to a 32-bit integer", int);
-        }
+        panic!("Could not convert {} to a 32-bit integer", int);
     }
 }
 
