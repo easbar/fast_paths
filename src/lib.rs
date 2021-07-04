@@ -204,13 +204,13 @@ mod tests {
 
     #[test]
     fn multi_source_routing_on_random_graph() {
-        const REPEATS: usize = 100;
+        const REPEATS: usize = 20;
         for _ in 0..REPEATS {
             const NUM_NODES: usize = 50;
             const NUM_QUERIES: usize = 1_000;
             const MEAN_DEGREE: f32 = 2.0;
             const NUM_SOURCES: usize = 3;
-            const NUM_TARGETS: usize = 1;
+            const NUM_TARGETS: usize = 3;
 
             let mut rng = create_rng();
             let input_graph = InputGraph::random(&mut rng, NUM_NODES, MEAN_DEGREE);
@@ -222,53 +222,52 @@ mod tests {
             let mut dijkstra = Dijkstra::new(input_graph.get_num_nodes());
 
             let mut num_different_paths = 0;
+            let mut num_paths_not_found = 0;
             for _ in 0..NUM_QUERIES {
                 // This may pick duplicate source nodes, and even duplicate source nodes with
                 // different weights; anyway that shouldn't break anything.
-                let gen_candidates = |_| {
-                    (
-                        rng.gen_range(0, input_graph.get_num_nodes()),
-                        // sometimes use sources nodes with max weight
-                        if rng.gen_range(0, 100) < 3 {
-                            WEIGHT_MAX
-                        } else {
-                            rng.gen_range(0, 100)
-                        },
-                    )
-                };
-                let sources: Vec<(NodeId, Weight)> = (0..NUM_SOURCES).map(gen_candidates).collect();
-                let targets: Vec<(NodeId, Weight)> = (0..NUM_TARGETS).map(|_| (rng.gen_range(0, input_graph.get_num_nodes()), 0)).collect();
-                let target = targets[0].0;
+                let sources =
+                    gen_weighted_nodes(&mut rng, input_graph.get_num_nodes(), NUM_SOURCES);
+                let targets =
+                    gen_weighted_nodes(&mut rng, input_graph.get_num_nodes(), NUM_TARGETS);
                 let fast_path = path_calculator.calc_path_multiple_endpoints(
                     &fast_graph,
                     sources.clone(),
                     targets.clone(),
                 );
-                let dijkstra_paths: Vec<(Option<ShortestPath>, Weight)> = sources
-                    .iter()
-                    .map(|(source, weight)| {
-                        (
-                            dijkstra.calc_path(&dijkstra_graph, *source, target),
-                            *weight,
-                        )
-                    })
-                    .collect();
+                let mut dijkstra_paths: Vec<(Option<ShortestPath>, Weight, Weight)> = vec![];
+                for (source, source_weight) in &sources {
+                    for (target, target_weight) in &targets {
+                        dijkstra_paths.push((
+                            dijkstra.calc_path(&dijkstra_graph, *source, *target),
+                            *source_weight,
+                            *target_weight,
+                        ))
+                    }
+                }
 
-                let found_dijkstras: Vec<(ShortestPath, usize)> = dijkstra_paths
+                let found_dijkstras: Vec<(ShortestPath, Weight, Weight)> = dijkstra_paths
                     .into_iter()
-                    .filter(|(p, w)| p.is_some() && *w < WEIGHT_MAX)
-                    .map(|(p, w)| (p.unwrap(), w))
+                    .filter(|(p, source_weight, target_weight)| {
+                        p.is_some() && *source_weight < WEIGHT_MAX && *target_weight < WEIGHT_MAX
+                    })
+                    .map(|(p, source_weight, target_weight)| {
+                        (p.unwrap(), source_weight, target_weight)
+                    })
                     .collect();
 
                 // We have to make sure fast_path is as short as the shortest of all dijkstra_paths
                 let shortest_dijkstra_weight = found_dijkstras
                     .iter()
-                    .map(|(p, w)| p.get_weight() + w)
+                    .map(|(p, source_weight, target_weight)| {
+                        p.get_weight() + source_weight + target_weight
+                    })
                     .min();
 
                 if shortest_dijkstra_weight.is_none() {
                     assert!(fast_path.is_none());
-                    return;
+                    num_paths_not_found += 1;
+                    continue;
                 }
 
                 assert!(fast_path.is_some());
@@ -277,16 +276,16 @@ mod tests {
                 assert_eq!(w, f.get_weight(),
                            "\nfast_path's weight {} does not match the weight of the shortest Dijkstra path {}.\
                                \nsources: {:?}\
-                               \ntargets: {}\
+                               \ntargets: {:?}\
                                \nFailing graph:\n{:?}",
-                           f.get_weight(), w, sources, target, input_graph);
+                           f.get_weight(), w, sources, targets, input_graph);
 
                 // There can be multiple options with the same weight. fast_path has to match
                 // at least one of them
-                let matching_dijkstras: Vec<(ShortestPath, Weight)> = found_dijkstras
+                let matching_dijkstras: Vec<(ShortestPath, Weight, Weight)> = found_dijkstras
                     .into_iter()
-                    .filter(|(p, w)| {
-                        p.get_weight() + w == f.get_weight()
+                    .filter(|(p, source_weight, target_weight)| {
+                        p.get_weight() + source_weight + target_weight == f.get_weight()
                             && p.get_source() == f.get_source()
                             && p.get_target() == f.get_target()
                     })
@@ -298,13 +297,19 @@ mod tests {
                 );
 
                 // one of the matching Dijkstra's should have the same nodes as fast_path, but in
-                // some rare cases this can be the case
+                // some rare cases this might not be true, because there are multiple shortest paths.
                 if !matching_dijkstras
                     .into_iter()
-                    .any(|(p, _)| p.get_nodes() == f.get_nodes())
+                    .any(|(p, _, _)| p.get_nodes() == f.get_nodes())
                 {
                     num_different_paths += 1;
                 }
+            }
+            if num_paths_not_found as f32 > 0.5 * NUM_QUERIES as f32 {
+                panic!(
+                    "too many paths not found: {}, out of {}",
+                    num_paths_not_found, NUM_QUERIES
+                )
             }
             if num_different_paths as f32 > 0.1 * NUM_QUERIES as f32 {
                 panic!(
@@ -315,6 +320,22 @@ mod tests {
                 );
             }
         }
+    }
+
+    fn gen_weighted_nodes(rng: &mut StdRng, max_node: usize, num: usize) -> Vec<(NodeId, Weight)> {
+        (0..num)
+            .map(|_| {
+                (
+                    rng.gen_range(0, max_node),
+                    // sometimes use max weight
+                    if rng.gen_range(0, 100) < 3 {
+                        WEIGHT_MAX
+                    } else {
+                        rng.gen_range(0, 100)
+                    },
+                )
+            })
+            .collect()
     }
 
     #[test]
