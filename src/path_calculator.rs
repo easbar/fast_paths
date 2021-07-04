@@ -95,11 +95,14 @@ impl PathCalculator {
 
         for (id, weight) in starts {
             if weight < self.get_weight_fwd(id) {
-                self.update_node_fwd(id, weight, INVALID_NODE, INVALID_EDGE);
+                // this is a bit of a hack, we store the start node as parent even though it is not
+                // the parent. this way we can easily obtain the target node when we unpack the path
+                // later
+                self.update_node_fwd(id, weight, id, INVALID_EDGE);
                 self.heap_fwd.push(HeapItem::new(weight, id));
             }
         }
-        self.update_node_bwd(end, 0, INVALID_NODE, INVALID_EDGE);
+        self.update_node_bwd(end, 0, end, INVALID_EDGE);
         self.heap_bwd.push(HeapItem::new(0, end));
 
         loop {
@@ -183,7 +186,7 @@ impl PathCalculator {
             return None;
         } else {
             assert!(best_weight < WEIGHT_MAX);
-            let node_ids = self.extract_nodes(graph, end, meeting_node);
+            let node_ids = self.extract_nodes(graph, meeting_node);
             let chosen_start = node_ids[0];
             return Some(ShortestPath::new(chosen_start, end, best_weight, node_ids));
         }
@@ -223,7 +226,7 @@ impl PathCalculator {
         return false;
     }
 
-    fn extract_nodes(&self, graph: &FastGraph, end: NodeId, meeting_node: NodeId) -> Vec<NodeId> {
+    fn extract_nodes(&self, graph: &FastGraph, meeting_node: NodeId) -> Vec<NodeId> {
         assert_ne!(meeting_node, INVALID_NODE);
         assert!(self.valid_flags_fwd.is_valid(meeting_node));
         assert!(self.valid_flags_bwd.is_valid(meeting_node));
@@ -239,7 +242,9 @@ impl PathCalculator {
             PathCalculator::unpack_bwd(graph, &mut result, self.data_bwd[node].inc_edge, false);
             node = self.data_bwd[node].parent;
         }
-        result.push(end);
+        // we stored the target node as 'parent' of the root of the shortest tree, so we can use it
+        // here
+        result.push(node);
         result
     }
 
