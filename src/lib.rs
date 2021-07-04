@@ -222,38 +222,87 @@ mod tests {
 
             let mut num_different_paths = 0;
             for _ in 0..NUM_QUERIES {
-                // This may pick duplicate source nodes; that shouldn't break anything.
+                // This may pick duplicate source nodes, and even duplicate source nodes with
+                // different weights; anyway that shouldn't break anything.
                 let sources: Vec<(NodeId, Weight)> = (0..NUM_SOURCES)
-                    .map(|_| (rng.gen_range(0, input_graph.get_num_nodes()), 0))
+                    .map(|_| {
+                        (
+                            rng.gen_range(0, input_graph.get_num_nodes()),
+                            // sometimes use sources nodes with max weight
+                            if rng.gen_range(0, 100) < 3 {
+                                WEIGHT_MAX
+                            } else {
+                                rng.gen_range(0, 100)
+                            },
+                        )
+                    })
                     .collect();
                 let target = rng.gen_range(0, input_graph.get_num_nodes());
-                let path_fast = path_calculator
-                    .calc_path_multiple_endpoints(&fast_graph, sources.clone(), target)
-                    .unwrap_or(ShortestPath::none(sources[0].0, target));
-                let dijkstra_paths: Vec<ShortestPath> = sources
+                let fast_path = path_calculator.calc_path_multiple_endpoints(
+                    &fast_graph,
+                    sources.clone(),
+                    target,
+                );
+                let dijkstra_paths: Vec<(Option<ShortestPath>, Weight)> = sources
                     .iter()
-                    .flat_map(|(source, _)| dijkstra.calc_path(&dijkstra_graph, *source, target))
+                    .map(|(source, weight)| {
+                        (
+                            dijkstra.calc_path(&dijkstra_graph, *source, target),
+                            *weight,
+                        )
+                    })
                     .collect();
 
-                // It's likely that there are multiple shortest paths, from different source nodes.
-                // Compare every Dijkstra's path with the one CH path.
-                let mut found_match = false;
-                for path_dijkstra in dijkstra_paths {
-                    if path_dijkstra.get_weight() > path_fast.get_weight() {
-                        assert_ne!(path_dijkstra.get_source(), path_fast.get_source(), "\nDijkstra found a path from {} to {} with cost {}, but the CH multi-source found the same path with cost {}.\nFailing graph:\n{:?}", path_fast.get_source(), target, path_dijkstra.get_weight(), path_fast.get_weight(), input_graph);
-                    }
-                    if path_dijkstra.get_weight() < path_fast.get_weight() {
-                        panic!("Dijkstra found a path from {} to {} with cost {}, but the CH multi-source found a higher weight path from {} to {} with cost {}.\nFailing graph:\n{:?}", path_dijkstra.get_source(), target, path_dijkstra.get_weight(), path_fast.get_source(), target, path_fast.get_weight(), input_graph);
-                    }
-                    if path_dijkstra.get_source() == path_fast.get_source() {
-                        found_match = path_dijkstra.get_weight() == path_fast.get_weight();
-                        if path_dijkstra.get_nodes() != path_fast.get_nodes() {
-                            num_different_paths += 1;
-                        }
-                    }
+                let found_dijkstras: Vec<(ShortestPath, usize)> = dijkstra_paths
+                    .into_iter()
+                    .filter(|(p, w)| p.is_some() && *w < WEIGHT_MAX)
+                    .map(|(p, w)| (p.unwrap(), w))
+                    .collect();
+
+                // We have to make sure fast_path is as short as the shortest of all dijkstra_paths
+                let shortest_dijkstra_weight = found_dijkstras
+                    .iter()
+                    .map(|(p, w)| p.get_weight() + w)
+                    .min();
+
+                if shortest_dijkstra_weight.is_none() {
+                    assert!(fast_path.is_none());
+                    return;
                 }
-                if path_fast.is_found() && !found_match {
-                    panic!("CH multi-source found a path from {} to {} with cost {}, but no Dijkstra's path started from that source.\nFailing graph:\n{:?}", path_fast.get_source(), target, path_fast.get_weight(), input_graph);
+
+                assert!(fast_path.is_some());
+                let f = fast_path.unwrap();
+                let w = shortest_dijkstra_weight.unwrap();
+                assert_eq!(w, f.get_weight(),
+                           "\nfast_path's weight {} does not match the weight of the shortest Dijkstra path {}.\
+                               \nsources: {:?}\
+                               \ntargets: {}\
+                               \nFailing graph:\n{:?}",
+                           f.get_weight(), w, sources, target, input_graph);
+
+                // There can be multiple options with the same weight. fast_path has to match
+                // at least one of them
+                let matching_dijkstras: Vec<(ShortestPath, Weight)> = found_dijkstras
+                    .into_iter()
+                    .filter(|(p, w)| {
+                        p.get_weight() + w == f.get_weight()
+                            && p.get_source() == f.get_source()
+                            && p.get_target() == f.get_target()
+                    })
+                    .collect();
+
+                assert!(
+                    matching_dijkstras.len() > 0,
+                    "There has to be at least one Dijkstra path with source,target and weight equal to fast_path"
+                );
+
+                // one of the matching Dijkstra's should have the same nodes as fast_path, but in
+                // some rare cases this can be the case
+                if !matching_dijkstras
+                    .into_iter()
+                    .any(|(p, _)| p.get_nodes() == f.get_nodes())
+                {
+                    num_different_paths += 1;
                 }
             }
             if num_different_paths as f32 > 0.1 * NUM_QUERIES as f32 {
