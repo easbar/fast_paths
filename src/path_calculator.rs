@@ -196,21 +196,19 @@ impl PathCalculator {
             }
         }
 
-        if meeting_node == INVALID_NODE {
-            return None;
+        return if meeting_node == INVALID_NODE {
+            None
         } else {
             assert!(best_weight < WEIGHT_MAX);
-            let node_ids = self.extract_nodes(graph, meeting_node);
-            assert!(node_ids.len() > 0);
-            let chosen_start = node_ids[0];
-            let chosen_end = node_ids[node_ids.len() - 1];
-            return Some(ShortestPath::new(
-                chosen_start,
-                chosen_end,
+            let nodes = self.extract_nodes(graph, meeting_node);
+            assert!(nodes.len() > 0);
+            Some(ShortestPath::new(
+                nodes[0],
+                nodes[nodes.len() - 1],
                 best_weight,
-                node_ids,
-            ));
-        }
+                nodes,
+            ))
+        };
     }
 
     fn is_stallable_fwd(&self, graph: &FastGraph, curr: HeapItem) -> bool {
