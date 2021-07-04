@@ -107,8 +107,13 @@ impl PathCalculator {
                 self.heap_fwd.push(HeapItem::new(weight, id));
             }
         }
-        self.update_node_bwd(end, 0, end, INVALID_EDGE);
-        self.heap_bwd.push(HeapItem::new(0, end));
+        for (id, weight) in ends {
+            if weight < self.get_weight_bwd(id) {
+                // ... same here
+                self.update_node_bwd(id, weight, id, INVALID_EDGE);
+                self.heap_bwd.push(HeapItem::new(0, id));
+            }
+        }
 
         loop {
             if self.heap_fwd.is_empty() && self.heap_bwd.is_empty() {
@@ -193,7 +198,8 @@ impl PathCalculator {
             assert!(best_weight < WEIGHT_MAX);
             let node_ids = self.extract_nodes(graph, meeting_node);
             let chosen_start = node_ids[0];
-            return Some(ShortestPath::new(chosen_start, end, best_weight, node_ids));
+            let chosen_end = node_ids[node_ids.len()-1];
+            return Some(ShortestPath::new(chosen_start, chosen_end, best_weight, node_ids));
         }
     }
 

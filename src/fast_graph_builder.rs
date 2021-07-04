@@ -442,6 +442,29 @@ mod tests {
         );
     }
 
+    #[test]
+    fn multiple_targets() {
+        // 0 <- 1 <- 2
+        // 3 <- 4 <-/
+        let mut input_graph = InputGraph::new();
+        input_graph.add_edge(1, 0, 3);
+        input_graph.add_edge(2, 1, 4);
+        input_graph.add_edge(4, 3, 2);
+        input_graph.add_edge(2, 4, 3);
+        input_graph.freeze();
+        let fast_graph = prepare(&input_graph);
+        let mut path_calculator = create_calculator(&fast_graph);
+        // two different options for target, without initial weight
+        assert_path_multiple_sources_and_targets(
+            &mut path_calculator,
+            &fast_graph,
+            vec![(2, 0)],
+            vec![(0, 0), (3, 0)],
+            vec![2, 4, 3],
+            5,
+        );
+    }
+
     fn assert_path_multiple_sources_and_targets(
         path_calculator: &mut PathCalculator,
         fast_graph: &FastGraph,
