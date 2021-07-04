@@ -83,7 +83,7 @@ pub fn calc_path(fast_graph: &FastGraph, source: NodeId, target: NodeId) -> Opti
 pub fn calc_path_multiple_endpoints(
     fast_graph: &FastGraph,
     sources: Vec<(NodeId, Weight)>,
-    target: NodeId,
+    target: Vec<(NodeId, Weight)>,
 ) -> Option<ShortestPath> {
     let mut calc = PathCalculator::new(fast_graph.get_num_nodes());
     calc.calc_path_multiple_endpoints(fast_graph, sources, target)
@@ -210,6 +210,7 @@ mod tests {
             const NUM_QUERIES: usize = 1_000;
             const MEAN_DEGREE: f32 = 2.0;
             const NUM_SOURCES: usize = 3;
+            const NUM_TARGETS: usize = 1;
 
             let mut rng = create_rng();
             let input_graph = InputGraph::random(&mut rng, NUM_NODES, MEAN_DEGREE);
@@ -224,24 +225,24 @@ mod tests {
             for _ in 0..NUM_QUERIES {
                 // This may pick duplicate source nodes, and even duplicate source nodes with
                 // different weights; anyway that shouldn't break anything.
-                let sources: Vec<(NodeId, Weight)> = (0..NUM_SOURCES)
-                    .map(|_| {
-                        (
-                            rng.gen_range(0, input_graph.get_num_nodes()),
-                            // sometimes use sources nodes with max weight
-                            if rng.gen_range(0, 100) < 3 {
-                                WEIGHT_MAX
-                            } else {
-                                rng.gen_range(0, 100)
-                            },
-                        )
-                    })
-                    .collect();
-                let target = rng.gen_range(0, input_graph.get_num_nodes());
+                let gen_candidates = |_| {
+                    (
+                        rng.gen_range(0, input_graph.get_num_nodes()),
+                        // sometimes use sources nodes with max weight
+                        if rng.gen_range(0, 100) < 3 {
+                            WEIGHT_MAX
+                        } else {
+                            rng.gen_range(0, 100)
+                        },
+                    )
+                };
+                let sources: Vec<(NodeId, Weight)> = (0..NUM_SOURCES).map(gen_candidates).collect();
+                let targets: Vec<(NodeId, Weight)> = (0..NUM_TARGETS).map(|_| (rng.gen_range(0, input_graph.get_num_nodes()), 0)).collect();
+                let target = targets[0].0;
                 let fast_path = path_calculator.calc_path_multiple_endpoints(
                     &fast_graph,
                     sources.clone(),
-                    target,
+                    targets.clone(),
                 );
                 let dijkstra_paths: Vec<(Option<ShortestPath>, Weight)> = sources
                     .iter()

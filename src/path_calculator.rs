@@ -58,24 +58,28 @@ impl PathCalculator {
         start: NodeId,
         end: NodeId,
     ) -> Option<ShortestPath> {
-        self.calc_path_multiple_endpoints(graph, vec![(start, 0)], end)
+        self.calc_path_multiple_endpoints(graph, vec![(start, 0)], vec![(end, 0)])
     }
 
     pub fn calc_path_multiple_endpoints(
         &mut self,
         graph: &FastGraph,
         starts: Vec<(NodeId, Weight)>,
-        end: NodeId,
+        ends: Vec<(NodeId, Weight)>,
     ) -> Option<ShortestPath> {
         assert_eq!(
             graph.get_num_nodes(),
             self.num_nodes,
             "given graph has invalid node count"
         );
+        assert!(starts.len() > 0, "there has to be at least one start");
+        assert!(ends.len() > 0, "there has to be at least one end");
         for (id, _) in &starts {
             assert!(*id < self.num_nodes, "invalid start node");
         }
-        assert!(end < self.num_nodes, "invalid end node");
+        for (id, _) in &starts {
+            assert!(*id < self.num_nodes, "invalid end node");
+        }
         self.heap_fwd.clear();
         self.heap_bwd.clear();
         self.valid_flags_fwd.invalidate_all();
@@ -84,6 +88,7 @@ impl PathCalculator {
         let mut best_weight = WEIGHT_MAX;
         let mut meeting_node = INVALID_NODE;
 
+        let end = ends[0].0;
         starts
             .iter()
             .filter(|(id, weight)| *id == end && *weight < WEIGHT_MAX)

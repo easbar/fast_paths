@@ -366,7 +366,7 @@ mod tests {
             &mut path_calculator,
             &fast_graph,
             vec![(0, 0), (3, 0)],
-            2,
+            vec![(2, 0)],
             vec![3, 4, 2],
             5,
         );
@@ -376,7 +376,7 @@ mod tests {
             &mut path_calculator,
             &fast_graph,
             vec![(0, 1), (3, 4)],
-            2,
+            vec![(2, 0)],
             vec![0, 1, 2],
             8,
         );
@@ -385,7 +385,7 @@ mod tests {
             &mut path_calculator,
             &fast_graph,
             vec![(0, 5), (0, 3)],
-            2,
+            vec![(2, 0)],
             vec![0, 1, 2],
             10,
         );
@@ -394,7 +394,7 @@ mod tests {
             &mut path_calculator,
             &fast_graph,
             vec![(5, 10), (5, 20)],
-            2,
+            vec![(2, 0)],
             vec![5, 2],
             12,
         );
@@ -403,7 +403,7 @@ mod tests {
             &mut path_calculator,
             &fast_graph,
             vec![(1, 10), (1, 1)],
-            1,
+            vec![(1, 0)],
             vec![1],
             1,
         );
@@ -412,7 +412,7 @@ mod tests {
             &mut path_calculator,
             &fast_graph,
             vec![(2, 10), (0, 0)],
-            2,
+            vec![(2, 0)],
             vec![0, 1, 2],
             7,
         );
@@ -421,14 +421,14 @@ mod tests {
             &mut path_calculator,
             &fast_graph,
             vec![(1, WEIGHT_MAX)],
-            1,
+            vec![(1, 0)],
         );
         // .. or at least they are ignored in case there are other ones
         assert_path_multiple_sources_and_targets(
             &mut path_calculator,
             &fast_graph,
             vec![(1, WEIGHT_MAX), (0, 3)],
-            1,
+            vec![(1, 0)],
             vec![0, 1],
             6,
         );
@@ -436,7 +436,7 @@ mod tests {
             &mut path_calculator,
             &fast_graph,
             vec![(1, WEIGHT_MAX), (3, 3)],
-            2,
+            vec![(2, 0)],
             vec![3, 4, 2],
             8,
         );
@@ -446,11 +446,11 @@ mod tests {
         path_calculator: &mut PathCalculator,
         fast_graph: &FastGraph,
         sources: Vec<(NodeId, Weight)>,
-        target: usize,
+        targets: Vec<(NodeId, Weight)>,
         expected_nodes: Vec<NodeId>,
         expected_weight: Weight,
     ) {
-        let fast_path = path_calculator.calc_path_multiple_endpoints(fast_graph, sources, target);
+        let fast_path = path_calculator.calc_path_multiple_endpoints(fast_graph, sources, targets);
         assert!(fast_path.is_some());
         let p = fast_path.unwrap();
         assert_eq!(expected_nodes, p.get_nodes().clone(), "unexpected nodes");
@@ -461,9 +461,9 @@ mod tests {
         path_calculator: &mut PathCalculator,
         fast_graph: &FastGraph,
         sources: Vec<(NodeId, Weight)>,
-        target: usize,
+        targets: Vec<(NodeId, Weight)>,
     ) {
-        let fast_path = path_calculator.calc_path_multiple_endpoints(&fast_graph, sources, target);
+        let fast_path = path_calculator.calc_path_multiple_endpoints(&fast_graph, sources, targets);
         assert!(fast_path.is_none(), "there should be no path");
     }
 }
