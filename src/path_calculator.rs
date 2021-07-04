@@ -80,10 +80,17 @@ impl PathCalculator {
         self.heap_bwd.clear();
         self.valid_flags_fwd.invalidate_all();
         self.valid_flags_bwd.invalidate_all();
-        for (id, weight) in &starts {
-            if *id == end {
-                return Some(ShortestPath::new(*id, *id, *weight, vec![*id]));
-            }
+        let min_start_end_match = starts
+            .iter()
+            .filter(|(id, _)| *id == end)
+            .min_by_key(|(_, weight)| weight);
+        if min_start_end_match.is_some() {
+            return Some(ShortestPath::new(
+                end,
+                end,
+                min_start_end_match.unwrap().1,
+                vec![end],
+            ));
         }
 
         for (id, weight) in starts {
