@@ -335,9 +335,12 @@ mod tests {
         weight: Weight,
         nodes: Vec<NodeId>,
     ) {
+        let fast_path = calc_path(fast_graph, source, target);
         assert_eq!(
-            calc_path(fast_graph, source, target),
-            Some(ShortestPath::new(source, target, weight, nodes))
+            fast_path,
+            Some(ShortestPath::new(source, target, weight, nodes.clone()))
         );
+        // ShortestPath PartialEq does not consider nodes!
+        assert_eq!(nodes, fast_path.unwrap().get_nodes().clone(),);
     }
 }
