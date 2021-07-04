@@ -80,9 +80,9 @@ impl PathCalculator {
         self.heap_bwd.clear();
         self.valid_flags_fwd.invalidate_all();
         self.valid_flags_bwd.invalidate_all();
-        for (id, _) in &starts {
+        for (id, weight) in &starts {
             if *id == end {
-                return Some(ShortestPath::singular(*id));
+                return Some(ShortestPath::new(*id, *id, *weight, vec![*id]));
             }
         }
 
