@@ -58,10 +58,10 @@ impl PathCalculator {
         start: NodeId,
         end: NodeId,
     ) -> Option<ShortestPath> {
-        self.calc_path_multiple_endpoints(graph, vec![(start, 0)], vec![(end, 0)])
+        self.calc_path_multiple_sources_and_targets(graph, vec![(start, 0)], vec![(end, 0)])
     }
 
-    pub fn calc_path_multiple_endpoints(
+    pub fn calc_path_multiple_sources_and_targets(
         &mut self,
         graph: &FastGraph,
         starts: Vec<(NodeId, Weight)>,
@@ -74,11 +74,11 @@ impl PathCalculator {
         );
         assert!(starts.len() > 0, "there has to be at least one start");
         assert!(ends.len() > 0, "there has to be at least one end");
-        for (id, _) in &starts {
-            assert!(*id < self.num_nodes, "invalid start node");
+        for (start_node, _) in &starts {
+            assert!(*start_node < self.num_nodes, "invalid start node");
         }
-        for (id, _) in &starts {
-            assert!(*id < self.num_nodes, "invalid end node");
+        for (end_node, _) in &ends {
+            assert!(*end_node < self.num_nodes, "invalid end node");
         }
         self.heap_fwd.clear();
         self.heap_bwd.clear();
@@ -102,20 +102,20 @@ impl PathCalculator {
             }
         }
 
-        for (id, weight) in starts {
-            if weight < self.get_weight_fwd(id) {
+        for (node, weight) in starts {
+            if weight < self.get_weight_fwd(node) {
                 // this is a bit of a hack, we store the start node as parent even though it is not
                 // the parent. this way we can easily obtain the target node when we unpack the path
                 // later
-                self.update_node_fwd(id, weight, id, INVALID_EDGE);
-                self.heap_fwd.push(HeapItem::new(weight, id));
+                self.update_node_fwd(node, weight, node, INVALID_EDGE);
+                self.heap_fwd.push(HeapItem::new(weight, node));
             }
         }
-        for (id, weight) in ends {
-            if weight < self.get_weight_bwd(id) {
+        for (node, weight) in ends {
+            if weight < self.get_weight_bwd(node) {
                 // ... same here
-                self.update_node_bwd(id, weight, id, INVALID_EDGE);
-                self.heap_bwd.push(HeapItem::new(weight, id));
+                self.update_node_bwd(node, weight, node, INVALID_EDGE);
+                self.heap_bwd.push(HeapItem::new(weight, node));
             }
         }
 
@@ -201,6 +201,7 @@ impl PathCalculator {
         } else {
             assert!(best_weight < WEIGHT_MAX);
             let node_ids = self.extract_nodes(graph, meeting_node);
+            assert!(node_ids.len() > 0);
             let chosen_start = node_ids[0];
             let chosen_end = node_ids[node_ids.len() - 1];
             return Some(ShortestPath::new(

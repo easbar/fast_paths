@@ -533,7 +533,8 @@ mod tests {
         expected_nodes: Vec<NodeId>,
         expected_weight: Weight,
     ) {
-        let fast_path = path_calculator.calc_path_multiple_endpoints(fast_graph, sources, targets);
+        let fast_path =
+            path_calculator.calc_path_multiple_sources_and_targets(fast_graph, sources, targets);
         assert!(fast_path.is_some());
         let p = fast_path.unwrap();
         assert_eq!(expected_nodes, p.get_nodes().clone(), "unexpected nodes");
@@ -546,7 +547,8 @@ mod tests {
         sources: Vec<(NodeId, Weight)>,
         targets: Vec<(NodeId, Weight)>,
     ) {
-        let fast_path = path_calculator.calc_path_multiple_endpoints(&fast_graph, sources, targets);
+        let fast_path =
+            path_calculator.calc_path_multiple_sources_and_targets(&fast_graph, sources, targets);
         assert!(fast_path.is_none(), "there should be no path");
     }
 }

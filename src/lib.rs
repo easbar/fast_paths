@@ -74,19 +74,19 @@ pub fn calc_path(fast_graph: &FastGraph, source: NodeId, target: NodeId) -> Opti
     calc.calc_path(fast_graph, source, target)
 }
 
-/// Calculates the shortest path from any of the `sources` to a single `target`.
+/// Calculates the shortest path from any of the `sources` to any of the `targets`.
 ///
-/// The path returned will start at the source node that's closest to `target`. An additional
-/// weight for each source can be specified.
-///
-/// TODO: Support multiple targets.
-pub fn calc_path_multiple_endpoints(
+/// The path returned will be the one with minimum weight among all possible paths between the sources
+/// and targets. The sources and targets can also be assigned an initial weight. In this case the
+/// path returned will be the one that minimizes start_weight + path-weight + target_weight. The
+/// weight of the path also includes start_weight and target_weight.
+pub fn calc_path_multiple_sources_and_targets(
     fast_graph: &FastGraph,
     sources: Vec<(NodeId, Weight)>,
     target: Vec<(NodeId, Weight)>,
 ) -> Option<ShortestPath> {
     let mut calc = PathCalculator::new(fast_graph.get_num_nodes());
-    calc.calc_path_multiple_endpoints(fast_graph, sources, target)
+    calc.calc_path_multiple_sources_and_targets(fast_graph, sources, target)
 }
 
 /// Creates a `PathCalculator` that can be used to run many shortest path calculations in a row.
@@ -230,7 +230,7 @@ mod tests {
                     gen_weighted_nodes(&mut rng, input_graph.get_num_nodes(), NUM_SOURCES);
                 let targets =
                     gen_weighted_nodes(&mut rng, input_graph.get_num_nodes(), NUM_TARGETS);
-                let fast_path = path_calculator.calc_path_multiple_endpoints(
+                let fast_path = path_calculator.calc_path_multiple_sources_and_targets(
                     &fast_graph,
                     sources.clone(),
                     targets.clone(),
