@@ -19,11 +19,11 @@
 
 use std::collections::BinaryHeap;
 
-use crate::constants::Weight;
+use crate::constants::{EdgeId, NodeId};
 use crate::constants::INVALID_EDGE;
 use crate::constants::INVALID_NODE;
+use crate::constants::Weight;
 use crate::constants::WEIGHT_MAX;
-use crate::constants::{EdgeId, NodeId};
 use crate::fast_graph::FastGraph;
 use crate::heap_item::HeapItem;
 use crate::shortest_path::ShortestPath;
@@ -80,18 +80,18 @@ impl PathCalculator {
         self.heap_bwd.clear();
         self.valid_flags_fwd.invalidate_all();
         self.valid_flags_bwd.invalidate_all();
-        let min_start_end_match = starts
+
+        let mut best_weight = WEIGHT_MAX;
+        let mut meeting_node = INVALID_NODE;
+
+        starts
             .iter()
             .filter(|(id, _)| *id == end)
-            .min_by_key(|(_, weight)| weight);
-        if min_start_end_match.is_some() {
-            return Some(ShortestPath::new(
-                end,
-                end,
-                min_start_end_match.unwrap().1,
-                vec![end],
-            ));
-        }
+            .min_by_key(|(_, weight)| weight)
+            .map(|(_, weight)| {
+                best_weight = *weight;
+                meeting_node = end;
+            });
 
         for (id, weight) in starts {
             self.update_node_fwd(id, weight, INVALID_NODE, INVALID_EDGE);
@@ -99,9 +99,6 @@ impl PathCalculator {
         }
         self.update_node_bwd(end, 0, INVALID_NODE, INVALID_EDGE);
         self.heap_bwd.push(HeapItem::new(0, end));
-
-        let mut best_weight = WEIGHT_MAX;
-        let mut meeting_node = INVALID_NODE;
 
         loop {
             if self.heap_fwd.is_empty() && self.heap_bwd.is_empty() {
