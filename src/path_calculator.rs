@@ -19,11 +19,11 @@
 
 use std::collections::BinaryHeap;
 
-use crate::constants::{EdgeId, NodeId};
+use crate::constants::Weight;
 use crate::constants::INVALID_EDGE;
 use crate::constants::INVALID_NODE;
-use crate::constants::Weight;
 use crate::constants::WEIGHT_MAX;
+use crate::constants::{EdgeId, NodeId};
 use crate::fast_graph::FastGraph;
 use crate::heap_item::HeapItem;
 use crate::shortest_path::ShortestPath;
