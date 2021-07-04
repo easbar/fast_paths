@@ -62,6 +62,21 @@ let mut path_calculator = fast_paths::create_calculator(&fast_graph);
 let shortest_path = path_calculator.calc_path(&fast_graph, 8, 6);
 ```
 
+### Calculating paths between multiple sources and targets
+
+We can also efficiently calculate the shortest path when we want to consider multiple sources or targets:
+
+```rust
+// ... see above
+// we want to either start at node 2 or 3 both of which carry a different initial weight
+let sources = vec![(3, 5), (2, 7)];
+// ... and go to either node 6 or 8 which also both carry a cost upon arrival
+let targets = vec![(6, 2), (8, 10)];
+// calculate the path with minimum cost that connects any of the sources with any of the targets while taking into 
+// account the initial weights of each source and node
+let shortest_path = path_calculator.calc_path_multiple_sources_and_targets(&fast_graph, sources, targets);
+```
+
 ### Serializing the prepared graph
 
 `FastGraph` implements standard [Serde](https://serde.rs/) serialization.
