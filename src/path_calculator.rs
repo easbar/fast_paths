@@ -94,7 +94,7 @@ impl PathCalculator {
             });
 
         for (id, weight) in starts {
-            if weight < WEIGHT_MAX {
+            if weight < self.get_weight_fwd(id) {
                 self.update_node_fwd(id, weight, INVALID_NODE, INVALID_EDGE);
                 self.heap_fwd.push(HeapItem::new(weight, id));
             }

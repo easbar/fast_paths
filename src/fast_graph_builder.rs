@@ -350,13 +350,14 @@ mod tests {
 
     #[test]
     fn multiple_sources() {
-        // 0 -> 1 -> 2
+        // 0 -> 1 -> 2 <- 5
         // 3 -> 4 ->/
         let mut input_graph = InputGraph::new();
         input_graph.add_edge(0, 1, 3);
         input_graph.add_edge(1, 2, 4);
         input_graph.add_edge(3, 4, 2);
         input_graph.add_edge(4, 2, 3);
+        input_graph.add_edge(5, 2, 2);
         input_graph.freeze();
         let fast_graph = prepare(&input_graph);
         let mut path_calculator = create_calculator(&fast_graph);
@@ -387,6 +388,15 @@ mod tests {
             2,
             vec![0, 1, 2],
             10,
+        );
+        // ... now put the smaller weight first
+        assert_path_multiple_sources_and_targets(
+            &mut path_calculator,
+            &fast_graph,
+            vec![(5, 10), (5, 20)],
+            2,
+            vec![5, 2],
+            12,
         );
         // start options equal the target
         assert_path_multiple_sources_and_targets(
@@ -440,7 +450,7 @@ mod tests {
         expected_nodes: Vec<NodeId>,
         expected_weight: Weight,
     ) {
-        let fast_path = path_calculator.calc_path_multiple_endpoints(&fast_graph, sources, target);
+        let fast_path = path_calculator.calc_path_multiple_endpoints(fast_graph, sources, target);
         assert!(fast_path.is_some());
         let p = fast_path.unwrap();
         assert_eq!(expected_nodes, p.get_nodes().clone(), "unexpected nodes");
