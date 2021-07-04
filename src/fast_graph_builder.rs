@@ -487,7 +487,7 @@ mod tests {
             vec![(4, 0)],
             vec![(4, 3), (4, 1)],
             vec![4],
-            1
+            1,
         )
     }
 
@@ -513,7 +513,7 @@ mod tests {
             vec![(1, 7), (6, 2), (5, 6)],
             vec![(3, 1), (4, 9), (5, 7)],
             vec![6, 2, 3],
-            12
+            12,
         );
         assert_path_multiple_sources_and_targets(
             &mut path_calculator,
@@ -521,7 +521,7 @@ mod tests {
             vec![(1, 7), (6, 2)],
             vec![(1, 9), (6, 3)],
             vec![6],
-            5
+            5,
         );
     }
 

@@ -90,7 +90,10 @@ impl PathCalculator {
 
         for (start_node, start_weight) in &starts {
             for (end_node, end_weight) in &ends {
-                if *start_node == *end_node && *start_weight < WEIGHT_MAX && *end_weight < WEIGHT_MAX {
+                if *start_node == *end_node
+                    && *start_weight < WEIGHT_MAX
+                    && *end_weight < WEIGHT_MAX
+                {
                     if *start_weight + *end_weight < best_weight {
                         best_weight = *start_weight + *end_weight;
                         meeting_node = *end_node;
@@ -199,8 +202,13 @@ impl PathCalculator {
             assert!(best_weight < WEIGHT_MAX);
             let node_ids = self.extract_nodes(graph, meeting_node);
             let chosen_start = node_ids[0];
-            let chosen_end = node_ids[node_ids.len()-1];
-            return Some(ShortestPath::new(chosen_start, chosen_end, best_weight, node_ids));
+            let chosen_end = node_ids[node_ids.len() - 1];
+            return Some(ShortestPath::new(
+                chosen_start,
+                chosen_end,
+                best_weight,
+                node_ids,
+            ));
         }
     }
 
