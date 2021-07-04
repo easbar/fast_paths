@@ -263,7 +263,11 @@ mod tests {
     use crate::shortest_path::ShortestPath;
 
     use super::*;
-    use crate::{calc_path, prepare_with_order};
+    // todo: maybe move these tests and the ones in lib.rs into the 'tests' folder as integration tests
+    //       see rust docs
+    use crate::{
+        calc_path, create_calculator, prepare, prepare_with_order, PathCalculator, WEIGHT_MAX,
+    };
 
     #[test]
     fn calc_path_linear_bwd_only() {
@@ -342,5 +346,209 @@ mod tests {
         );
         // ShortestPath PartialEq does not consider nodes!
         assert_eq!(nodes, fast_path.unwrap().get_nodes().clone(),);
+    }
+
+    #[test]
+    fn multiple_sources() {
+        // 0 -> 1 -> 2 <- 5
+        // 3 -> 4 ->/
+        let mut input_graph = InputGraph::new();
+        input_graph.add_edge(0, 1, 3);
+        input_graph.add_edge(1, 2, 4);
+        input_graph.add_edge(3, 4, 2);
+        input_graph.add_edge(4, 2, 3);
+        input_graph.add_edge(5, 2, 2);
+        input_graph.freeze();
+        let fast_graph = prepare(&input_graph);
+        let mut path_calculator = create_calculator(&fast_graph);
+        // two different options for source, without initial weight
+        assert_path_multiple_sources_and_targets(
+            &mut path_calculator,
+            &fast_graph,
+            vec![(0, 0), (3, 0)],
+            vec![(2, 0)],
+            vec![3, 4, 2],
+            5,
+        );
+        // two different options for source, with initial weights, 0->1->2's weight is higher,
+        // but since the initial weight is smaller it is the shortest path
+        assert_path_multiple_sources_and_targets(
+            &mut path_calculator,
+            &fast_graph,
+            vec![(0, 1), (3, 4)],
+            vec![(2, 0)],
+            vec![0, 1, 2],
+            8,
+        );
+        // one option appearing twice with different initial weights, the smaller one should be taken
+        assert_path_multiple_sources_and_targets(
+            &mut path_calculator,
+            &fast_graph,
+            vec![(0, 5), (0, 3)],
+            vec![(2, 0)],
+            vec![0, 1, 2],
+            10,
+        );
+        // ... now put the smaller weight first
+        assert_path_multiple_sources_and_targets(
+            &mut path_calculator,
+            &fast_graph,
+            vec![(5, 10), (5, 20)],
+            vec![(2, 0)],
+            vec![5, 2],
+            12,
+        );
+        // start options equal the target
+        assert_path_multiple_sources_and_targets(
+            &mut path_calculator,
+            &fast_graph,
+            vec![(1, 10), (1, 1)],
+            vec![(1, 0)],
+            vec![1],
+            1,
+        );
+        // one of the start options equals the target, but still the shortest path is another one
+        assert_path_multiple_sources_and_targets(
+            &mut path_calculator,
+            &fast_graph,
+            vec![(2, 10), (0, 0)],
+            vec![(2, 0)],
+            vec![0, 1, 2],
+            7,
+        );
+        // start options with max weight cannot yield a shortest path
+        assert_path_multiple_sources_and_targets_not_found(
+            &mut path_calculator,
+            &fast_graph,
+            vec![(1, WEIGHT_MAX)],
+            vec![(1, 0)],
+        );
+        // .. or at least they are ignored in case there are other ones
+        assert_path_multiple_sources_and_targets(
+            &mut path_calculator,
+            &fast_graph,
+            vec![(1, WEIGHT_MAX), (0, 3)],
+            vec![(1, 0)],
+            vec![0, 1],
+            6,
+        );
+        assert_path_multiple_sources_and_targets(
+            &mut path_calculator,
+            &fast_graph,
+            vec![(1, WEIGHT_MAX), (3, 3)],
+            vec![(2, 0)],
+            vec![3, 4, 2],
+            8,
+        );
+    }
+
+    #[test]
+    fn multiple_targets() {
+        // 0 <- 1 <- 2
+        // 3 <- 4 <-/
+        let mut input_graph = InputGraph::new();
+        input_graph.add_edge(1, 0, 3);
+        input_graph.add_edge(2, 1, 4);
+        input_graph.add_edge(4, 3, 2);
+        input_graph.add_edge(2, 4, 3);
+        input_graph.freeze();
+        let fast_graph = prepare(&input_graph);
+        let mut path_calculator = create_calculator(&fast_graph);
+        // two different options for target, without initial weight
+        assert_path_multiple_sources_and_targets(
+            &mut path_calculator,
+            &fast_graph,
+            vec![(2, 0)],
+            vec![(0, 0), (3, 0)],
+            vec![2, 4, 3],
+            5,
+        );
+        // two different options for target, with initial weight
+        assert_path_multiple_sources_and_targets(
+            &mut path_calculator,
+            &fast_graph,
+            vec![(2, 0)],
+            vec![(0, 0), (3, 1)],
+            vec![2, 4, 3],
+            6,
+        );
+        assert_path_multiple_sources_and_targets(
+            &mut path_calculator,
+            &fast_graph,
+            vec![(2, 0)],
+            vec![(0, 0), (3, 3)],
+            vec![2, 1, 0],
+            7,
+        );
+        // start==end
+        assert_path_multiple_sources_and_targets(
+            &mut path_calculator,
+            &fast_graph,
+            vec![(4, 0)],
+            vec![(4, 3), (4, 1)],
+            vec![4],
+            1,
+        )
+    }
+
+    #[test]
+    fn multiple_sources_and_targets() {
+        // 0 -- 1 -- 2 -- 3 -- 4
+        // 5 -- 6 --/ \-- 7 -- 8
+        let mut input_graph = InputGraph::new();
+        input_graph.add_edge_bidir(0, 1, 1);
+        input_graph.add_edge_bidir(1, 2, 2);
+        input_graph.add_edge_bidir(2, 3, 3);
+        input_graph.add_edge_bidir(3, 4, 4);
+        input_graph.add_edge_bidir(5, 6, 5);
+        input_graph.add_edge_bidir(6, 2, 6);
+        input_graph.add_edge_bidir(2, 7, 7);
+        input_graph.add_edge_bidir(7, 8, 8);
+        input_graph.freeze();
+        let fast_graph = prepare(&input_graph);
+        let mut path_calculator = create_calculator(&fast_graph);
+        assert_path_multiple_sources_and_targets(
+            &mut path_calculator,
+            &fast_graph,
+            vec![(1, 7), (6, 2), (5, 6)],
+            vec![(3, 1), (4, 9), (5, 7)],
+            vec![6, 2, 3],
+            12,
+        );
+        assert_path_multiple_sources_and_targets(
+            &mut path_calculator,
+            &fast_graph,
+            vec![(1, 7), (6, 2)],
+            vec![(1, 9), (6, 3)],
+            vec![6],
+            5,
+        );
+    }
+
+    fn assert_path_multiple_sources_and_targets(
+        path_calculator: &mut PathCalculator,
+        fast_graph: &FastGraph,
+        sources: Vec<(NodeId, Weight)>,
+        targets: Vec<(NodeId, Weight)>,
+        expected_nodes: Vec<NodeId>,
+        expected_weight: Weight,
+    ) {
+        let fast_path =
+            path_calculator.calc_path_multiple_sources_and_targets(fast_graph, sources, targets);
+        assert!(fast_path.is_some());
+        let p = fast_path.unwrap();
+        assert_eq!(expected_nodes, p.get_nodes().clone(), "unexpected nodes");
+        assert_eq!(expected_weight, p.get_weight(), "unexpected weight");
+    }
+
+    fn assert_path_multiple_sources_and_targets_not_found(
+        path_calculator: &mut PathCalculator,
+        fast_graph: &FastGraph,
+        sources: Vec<(NodeId, Weight)>,
+        targets: Vec<(NodeId, Weight)>,
+    ) {
+        let fast_path =
+            path_calculator.calc_path_multiple_sources_and_targets(&fast_graph, sources, targets);
+        assert!(fast_path.is_none(), "there should be no path");
     }
 }
