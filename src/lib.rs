@@ -203,7 +203,7 @@ mod tests {
     }
 
     #[test]
-    fn multi_source_routing_on_random_graph() {
+    fn routing_with_multiple_sources_and_targets_on_random_graph() {
         const REPEATS: usize = 20;
         for _ in 0..REPEATS {
             const NUM_NODES: usize = 50;
