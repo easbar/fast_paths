@@ -265,7 +265,7 @@ mod tests {
     use super::*;
     // todo: maybe move these tests and the ones in lib.rs into the 'tests' folder as integration tests
     //       see rust docs
-    use crate::{calc_path, prepare_with_order, prepare, create_calculator, PathCalculator};
+    use crate::{calc_path, prepare_with_order, prepare, create_calculator, PathCalculator, WEIGHT_MAX};
 
     #[test]
     fn calc_path_linear_bwd_only() {
@@ -404,6 +404,30 @@ mod tests {
             vec![0, 1, 2],
             7,
         );
+        // start options with max weight cannot yield a shortest path
+        assert_path_multiple_sources_and_targets_not_found(
+            &mut pc,
+            &g,
+            vec![(1, WEIGHT_MAX)],
+            1,
+        );
+        // .. or at least they are ignored in case there are other ones
+        assert_path_multiple_sources_and_targets(
+            &mut pc,
+            &g,
+            vec![(1, WEIGHT_MAX), (0, 3)],
+            1,
+            vec![0, 1],
+            6
+        );
+        assert_path_multiple_sources_and_targets(
+            &mut pc,
+            &g,
+            vec![(1, WEIGHT_MAX), (3, 3)],
+            2,
+            vec![3, 4, 2],
+            8
+        );
     }
 
     fn assert_path_multiple_sources_and_targets(
@@ -419,6 +443,16 @@ mod tests {
         let p = fast_path.unwrap();
         assert_eq!(expected_nodes, p.get_nodes().clone(), "unexpected nodes");
         assert_eq!(expected_weight, p.get_weight(), "unexpected weight");
+    }
+
+    fn assert_path_multiple_sources_and_targets_not_found(
+        path_calculator: &mut PathCalculator,
+        fast_graph: &FastGraph,
+        sources: Vec<(NodeId, Weight)>,
+        target: usize
+    ) {
+        let fast_path = path_calculator.calc_path_multiple_endpoints(&fast_graph, sources, target);
+        assert!(fast_path.is_none(), "there should be no path");
     }
 
 }

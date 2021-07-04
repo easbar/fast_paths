@@ -86,7 +86,7 @@ impl PathCalculator {
 
         starts
             .iter()
-            .filter(|(id, _)| *id == end)
+            .filter(|(id, weight)| *id == end && *weight < WEIGHT_MAX)
             .min_by_key(|(_, weight)| weight)
             .map(|(_, weight)| {
                 best_weight = *weight;
@@ -94,8 +94,10 @@ impl PathCalculator {
             });
 
         for (id, weight) in starts {
-            self.update_node_fwd(id, weight, INVALID_NODE, INVALID_EDGE);
-            self.heap_fwd.push(HeapItem::new(weight, id));
+            if weight < WEIGHT_MAX {
+                self.update_node_fwd(id, weight, INVALID_NODE, INVALID_EDGE);
+                self.heap_fwd.push(HeapItem::new(weight, id));
+            }
         }
         self.update_node_bwd(end, 0, INVALID_NODE, INVALID_EDGE);
         self.heap_bwd.push(HeapItem::new(0, end));
@@ -180,6 +182,7 @@ impl PathCalculator {
         if meeting_node == INVALID_NODE {
             return None;
         } else {
+            assert!(best_weight < WEIGHT_MAX);
             let node_ids = self.extract_nodes(graph, end, meeting_node);
             let chosen_start = node_ids[0];
             return Some(ShortestPath::new(chosen_start, end, best_weight, node_ids));
