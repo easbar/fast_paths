@@ -335,12 +335,12 @@ mod tests {
         weight: Weight,
         nodes: Vec<NodeId>,
     ) {
-        let dijkstra_path = calc_path(fast_graph, source, target);
+        let fast_path = calc_path(fast_graph, source, target);
         assert_eq!(
-            dijkstra_path,
+            fast_path,
             Some(ShortestPath::new(source, target, weight, nodes.clone()))
         );
         // ShortestPath PartialEq does not consider nodes!
-        assert_eq!(nodes, dijkstra_path.unwrap().get_nodes().clone(),);
+        assert_eq!(nodes, fast_path.unwrap().get_nodes().clone(),);
     }
 }
