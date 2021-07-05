@@ -214,6 +214,12 @@ impl fmt::Debug for InputGraph {
     }
 }
 
+impl Default for InputGraph {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 #[derive(Serialize, Deserialize, Debug, Copy, Clone)]
 pub struct Edge {
     pub from: NodeId,
