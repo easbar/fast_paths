@@ -42,10 +42,9 @@ pub fn calc_relevance(
         num_shortcuts += 1;
     });
     let num_edges = graph.get_out_edges(node).len() + graph.get_in_edges(node).len();
-    let mut relevance = (params.hierarchy_depth_factor * level as f32)
+    let relevance = (params.hierarchy_depth_factor * level as f32)
         + (params.edge_quotient_factor * num_shortcuts as f32 + 1.0) / (num_edges as f32 + 1.0);
-    relevance *= 1000.0;
-    return relevance;
+    relevance * 1000.0
 }
 
 pub fn handle_shortcuts<F>(

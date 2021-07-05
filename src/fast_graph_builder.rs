@@ -61,7 +61,7 @@ impl FastGraphBuilder {
 
     pub fn build_with_order(
         input_graph: &InputGraph,
-        order: &Vec<NodeId>,
+        order: &[NodeId],
     ) -> Result<FastGraph, String> {
         if input_graph.get_num_nodes() != order.len() {
             return Err(String::from(
@@ -145,11 +145,10 @@ impl FastGraphBuilder {
         self.finish_contraction();
     }
 
-    fn run_contraction_with_order(&mut self, input_graph: &InputGraph, order: &Vec<NodeId>) {
+    fn run_contraction_with_order(&mut self, input_graph: &InputGraph, order: &[NodeId]) {
         let mut preparation_graph = PreparationGraph::from_input_graph(input_graph);
         let mut dijkstra = Dijkstra::new(self.num_nodes);
-        for rank in 0..order.len() {
-            let node = order[rank];
+        for (rank, node) in order.iter().cloned().enumerate() {
             if node >= self.num_nodes {
                 panic!("Order contains invalid node id: {}", node);
             }

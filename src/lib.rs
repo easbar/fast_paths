@@ -61,10 +61,7 @@ pub fn prepare_with_params(input_graph: &InputGraph, params: &Params) -> FastGra
 /// of the node ids. This can be used to speed up the graph preparation if you have done
 /// it for a similar graph with an equal number of nodes. For example if you have changed some
 /// of the edge weights only.
-pub fn prepare_with_order(
-    input_graph: &InputGraph,
-    order: &Vec<NodeId>,
-) -> Result<FastGraph, String> {
+pub fn prepare_with_order(input_graph: &InputGraph, order: &[NodeId]) -> Result<FastGraph, String> {
     FastGraphBuilder::build_with_order(input_graph, order)
 }
 

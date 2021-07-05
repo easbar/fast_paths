@@ -72,8 +72,8 @@ impl PathCalculator {
             self.num_nodes,
             "given graph has invalid node count"
         );
-        assert!(starts.len() > 0, "there has to be at least one start");
-        assert!(ends.len() > 0, "there has to be at least one end");
+        assert!(!starts.is_empty(), "there has to be at least one start");
+        assert!(!ends.is_empty(), "there has to be at least one end");
         for (start_node, _) in &starts {
             assert!(*start_node < self.num_nodes, "invalid start node");
         }
@@ -93,11 +93,10 @@ impl PathCalculator {
                 if *start_node == *end_node
                     && *start_weight < WEIGHT_MAX
                     && *end_weight < WEIGHT_MAX
+                    && *start_weight + *end_weight < best_weight
                 {
-                    if *start_weight + *end_weight < best_weight {
-                        best_weight = *start_weight + *end_weight;
-                        meeting_node = *end_node;
-                    }
+                    best_weight = *start_weight + *end_weight;
+                    meeting_node = *end_node;
                 }
             }
         }
@@ -196,19 +195,19 @@ impl PathCalculator {
             }
         }
 
-        return if meeting_node == INVALID_NODE {
+        if meeting_node == INVALID_NODE {
             None
         } else {
             assert!(best_weight < WEIGHT_MAX);
             let nodes = self.extract_nodes(graph, meeting_node);
-            assert!(nodes.len() > 0);
+            assert!(!nodes.is_empty());
             Some(ShortestPath::new(
                 nodes[0],
                 nodes[nodes.len() - 1],
                 best_weight,
                 nodes,
             ))
-        };
+        }
     }
 
     fn is_stallable_fwd(&self, graph: &FastGraph, curr: HeapItem) -> bool {
@@ -225,7 +224,7 @@ impl PathCalculator {
                 return true;
             }
         }
-        return false;
+        false
     }
 
     fn is_stallable_bwd(&self, graph: &FastGraph, curr: HeapItem) -> bool {
@@ -242,7 +241,7 @@ impl PathCalculator {
                 return true;
             }
         }
-        return false;
+        false
     }
 
     fn extract_nodes(&self, graph: &FastGraph, meeting_node: NodeId) -> Vec<NodeId> {

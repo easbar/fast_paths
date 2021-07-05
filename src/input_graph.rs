@@ -94,7 +94,7 @@ impl InputGraph {
     }
 
     fn sort(&mut self) {
-        &self.edges.sort_by(|a, b| {
+        self.edges.sort_by(|a, b| {
             a.from
                 .cmp(&b.from)
                 .then(a.to.cmp(&b.to))
@@ -153,7 +153,11 @@ impl InputGraph {
         if bidir {
             self.edges.push(Edge::new(to, from, weight));
         }
-        return if bidir { 2 } else { 1 };
+        if bidir {
+            2
+        } else {
+            1
+        }
     }
 
     /// Builds a random graph, mostly used for testing purposes
@@ -186,7 +190,7 @@ impl InputGraph {
         let mut g = InputGraph::new();
         for (_index, line) in reader.lines().enumerate() {
             let s: String = line.unwrap();
-            if !s.starts_with("a") {
+            if !s.starts_with('a') {
                 continue;
             } else {
                 let entries = s.split_whitespace().collect::<Vec<&str>>()[1..4]
@@ -207,6 +211,12 @@ impl InputGraph {
 impl fmt::Debug for InputGraph {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{}", self.unit_test_output_string())
+    }
+}
+
+impl Default for InputGraph {
+    fn default() -> Self {
+        Self::new()
     }
 }
 
