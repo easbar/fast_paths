@@ -15,7 +15,7 @@ travis-ci = { repository = "easbar/fast_paths", branch = "master" }
 serde = { version = "1.0", features =["derive"] }
 log = "0.4"
 priority-queue = "1.0.0"
-osm_ch_pre = { git = "https://github.com/dabreegster/osm_ch", branch = "prototype_lib" }
+osm_ch_pre = { git = "https://github.com/easbar/osm_ch", branch = "prototype_lib" }
 rand = "0.6"
 stopwatch = "0.0.7"
 

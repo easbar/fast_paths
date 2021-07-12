@@ -70,8 +70,9 @@ fn main() {
         "preparation time .................. {} ms",
         prep_time_fast_paths.elapsed_ms()
     );
+    let mut osm_ch_calculator = osm_ch_pre::Calculator::new(osm_ch_output.nodes.len());
     let (checksum_osm_ch, num_not_found_osm_ch) = run_queries(
-        &mut |s, t| osm_ch_output.query(s, t).map(|r| r.0),
+        &mut |s, t| osm_ch_calculator.query(&osm_ch_output, s, t).map(|r| r.0),
         input_graph.get_num_nodes(),
     );
     println!("checksum fast_paths............... {}", checksum_fast_paths);
