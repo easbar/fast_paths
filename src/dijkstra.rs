@@ -33,6 +33,7 @@ pub struct Dijkstra {
     heap: BinaryHeap<HeapItem>,
     avoid_node: NodeId,
     max_weight: Weight,
+    max_nodes: usize,
     start_node: NodeId,
 }
 
@@ -46,6 +47,7 @@ impl Dijkstra {
             heap,
             avoid_node: INVALID_NODE,
             max_weight: WEIGHT_MAX,
+            max_nodes: usize::MAX,
             start_node: INVALID_NODE,
         }
     }
@@ -57,6 +59,10 @@ impl Dijkstra {
 
     pub fn set_max_weight(&mut self, weight: Weight) {
         self.max_weight = weight;
+    }
+
+    pub fn set_max_nodes(&mut self, nodes: usize) {
+        self.max_nodes = nodes;
     }
 
     #[allow(dead_code)]
@@ -112,8 +118,13 @@ impl Dijkstra {
         }
         self.start_node = start;
 
+        let mut popped = 0;
         while !self.heap.is_empty() {
             let curr = self.heap.pop().unwrap();
+            popped += 1;
+            if popped > self.max_nodes {
+                break;
+            }
             if self.is_settled(curr.node_id) {
                 // todo: since we are not using a special decrease key operation yet we need to
                 // filter out duplicate heap items here

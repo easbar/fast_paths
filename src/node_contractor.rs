@@ -60,6 +60,7 @@ pub fn handle_shortcuts<F>(
         for j in 0..graph.out_edges[node].len() {
             let weight = graph.in_edges[node][i].weight + graph.out_edges[node][j].weight;
             dijkstra.set_max_weight(weight);
+            dijkstra.set_max_nodes(100);
             let in_node = graph.in_edges[node][i].adj_node;
             let out_node = graph.out_edges[node][j].adj_node;
             let best_weight = dijkstra.calc_weight(graph, in_node, out_node);
