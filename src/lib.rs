@@ -436,6 +436,18 @@ mod tests {
 
     #[ignore]
     #[test]
+    fn run_performance_test_south_seattle_car() {
+        println!("Running performance test for South Seattle car");
+        run_performance_test(
+            &InputGraph::from_file("meta/test_maps/south_seattle_car.gr"),
+            &Params::default(),
+            77479396,
+            30805,
+        );
+    }
+
+    #[ignore]
+    #[test]
     fn run_performance_test_dist_fixed_ordering() {
         println!("Running performance test for Bremen dist (fixed node ordering)");
         let input_graph = InputGraph::from_file("meta/test_maps/bremen_dist.gr");
