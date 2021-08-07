@@ -63,7 +63,7 @@ pub fn handle_shortcuts<F>(
             let in_node = graph.in_edges[node][i].adj_node;
             let out_node = graph.out_edges[node][j].adj_node;
             let best_weight = dijkstra.calc_weight(graph, in_node, out_node);
-            if best_weight.is_none() {
+            if best_weight.is_none() || best_weight.unwrap() > weight {
                 handle_shortcut(graph, Shortcut::new(in_node, out_node, node, weight))
             }
         }

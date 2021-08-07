@@ -55,6 +55,9 @@ impl Dijkstra {
         self.start_node = INVALID_NODE;
     }
 
+    /// sets the maximum weight that is allowed for a node when it is settled. setting this value
+    /// only affects future searches, so calc_path/weight can still return results with larger
+    /// weights.
     pub fn set_max_weight(&mut self, weight: Weight) {
         self.max_weight = weight;
     }
@@ -80,11 +83,10 @@ impl Dijkstra {
         if start == end {
             return Some(WEIGHT_ZERO);
         }
-        let weight = self.get_final_weight(end);
-        if weight == WEIGHT_MAX {
-            None
+        if self.is_settled(end) {
+            Some(self.data[end].weight)
         } else {
-            Some(weight)
+            None
         }
     }
 
@@ -113,7 +115,11 @@ impl Dijkstra {
         self.start_node = start;
 
         while !self.heap.is_empty() {
-            let curr = self.heap.pop().unwrap();
+            let curr = *self.heap.peek().unwrap();
+            if curr.weight > self.max_weight {
+                break;
+            }
+            self.heap.pop();
             if self.is_settled(curr.node_id) {
                 // todo: since we are not using a special decrease key operation yet we need to
                 // filter out duplicate heap items here
@@ -135,9 +141,6 @@ impl Dijkstra {
             if curr.node_id == end {
                 break;
             }
-            if curr.weight >= self.max_weight {
-                break;
-            }
         }
     }
 
@@ -145,7 +148,7 @@ impl Dijkstra {
         if start == end {
             return Some(ShortestPath::singular(start));
         }
-        let weight = self.get_final_weight(end);
+        let weight = self.get_settled_weight(end);
         if weight == WEIGHT_MAX {
             return None;
         }
@@ -160,12 +163,10 @@ impl Dijkstra {
         Some(ShortestPath::new(start, end, weight, path))
     }
 
-    fn get_final_weight(&mut self, end: usize) -> usize {
-        if !self.valid_flags.is_valid(end) ||
-            // if max_weight is exceeded we might have found some path to the end node, but since
-            // it is not necessarily the shortest we return WEIGHT_MAX (not found) also in this case
-            self.data[end].weight > self.max_weight
-        {
+    fn get_settled_weight(&mut self, end: usize) -> usize {
+        if !self.is_settled(end) {
+            // if end is not settled we might have found some path to the end node, but it is not
+            // necessarily the shortest
             WEIGHT_MAX
         } else {
             self.data[end].weight
@@ -284,11 +285,39 @@ mod tests {
         let mut d = Dijkstra::new(g.get_num_nodes());
         assert_path(&mut d, &g, 0, 4, 4, vec![0, 1, 2, 3, 4]);
         d.set_max_weight(2);
+        // since this path was already found it will be returned. set_max_weight does not affect
+        // future searches.
+        assert_path(&mut d, &g, 0, 4, 4, vec![0, 1, 2, 3, 4]);
+        // 'clear' the cache by using another start node
+        assert_path(&mut d, &g, 1, 3, 2, vec![1, 2, 3]);
+        // now we no longer find the paths that exceed the weight
         assert_no_path(&mut d, &g, 0, 4);
         assert_no_path(&mut d, &g, 0, 3);
         assert_path(&mut d, &g, 0, 2, 2, vec![0, 1, 2]);
+        // but of course we can increase the max weight to extend the search
         d.set_max_weight(3);
         assert_path(&mut d, &g, 0, 3, 3, vec![0, 1, 2, 3]);
+    }
+
+    #[test]
+    fn limit_weight_do_not_settle_too_many() {
+        // 0 -> 1 -> 2
+        let mut g = PreparationGraph::new(3);
+        g.add_edge(0, 1, 1);
+        g.add_edge(1, 2, 1);
+        let mut d = Dijkstra::new(g.get_num_nodes());
+        d.set_max_weight(1);
+        // calculating the same path over and over again still does not settle node 2
+        assert_no_path(&mut d, &g, 0, 2);
+        assert_no_path(&mut d, &g, 0, 2);
+        assert_no_path(&mut d, &g, 0, 2);
+        assert_no_path(&mut d, &g, 0, 2);
+        assert_eq!(false, d.is_settled(2));
+        d.set_max_weight(2);
+        // use another start node to clear the 'cache'
+        assert_path(&mut d, &g, 1, 2, 1, vec![1, 2]);
+        // now we find a path
+        assert_path(&mut d, &g, 0, 2, 2, vec![0, 1, 2]);
     }
 
     #[test]
