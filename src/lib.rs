@@ -576,7 +576,7 @@ mod tests {
     }
 
     fn create_seed() -> u64 {
-        SystemTime::now().elapsed().unwrap().as_nanos() as u64
+        SystemTime::now().duration_since(SystemTime::UNIX_EPOCH).unwrap().as_nanos() as u64
     }
 
     /// Saves the given prepared graph to disk
