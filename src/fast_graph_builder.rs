@@ -85,7 +85,7 @@ impl FastGraphBuilder {
                 &mut witness_search,
                 node,
                 0,
-                usize::MAX,
+                20,
             ) as Weight;
             queue.push(node, Reverse(priority));
         }
@@ -126,7 +126,7 @@ impl FastGraphBuilder {
                 &mut preparation_graph,
                 &mut witness_search,
                 node,
-                usize::MAX,
+                100,
             );
             for neighbor in neighbors {
                 levels[neighbor] = max(levels[neighbor], levels[node] + 1);
@@ -136,7 +136,7 @@ impl FastGraphBuilder {
                     &mut witness_search,
                     neighbor,
                     levels[neighbor],
-                    usize::MAX,
+                    20,
                 ) as Weight;
                 queue.change_priority(&neighbor, Reverse(priority));
             }
@@ -188,7 +188,7 @@ impl FastGraphBuilder {
                 &mut preparation_graph,
                 &mut witness_search,
                 node,
-                usize::MAX,
+                100,
             );
             debug!(
                 "contracted node {} / {}, num edges fwd: {}, num edges bwd: {}",
