@@ -85,6 +85,7 @@ impl FastGraphBuilder {
                 &mut witness_search,
                 node,
                 0,
+                usize::MAX,
             ) as Weight;
             queue.push(node, Reverse(priority));
         }
@@ -121,7 +122,12 @@ impl FastGraphBuilder {
             self.fast_graph.first_edge_ids_bwd[rank + 1] = self.fast_graph.get_num_in_edges();
 
             self.fast_graph.ranks[node] = rank;
-            node_contractor::contract_node(&mut preparation_graph, &mut witness_search, node);
+            node_contractor::contract_node(
+                &mut preparation_graph,
+                &mut witness_search,
+                node,
+                usize::MAX,
+            );
             for neighbor in neighbors {
                 levels[neighbor] = max(levels[neighbor], levels[node] + 1);
                 let priority = node_contractor::calc_relevance(
@@ -130,6 +136,7 @@ impl FastGraphBuilder {
                     &mut witness_search,
                     neighbor,
                     levels[neighbor],
+                    usize::MAX,
                 ) as Weight;
                 queue.change_priority(&neighbor, Reverse(priority));
             }
@@ -177,7 +184,12 @@ impl FastGraphBuilder {
             self.fast_graph.first_edge_ids_bwd[rank + 1] = self.fast_graph.get_num_in_edges();
 
             self.fast_graph.ranks[node] = rank;
-            node_contractor::contract_node(&mut preparation_graph, &mut witness_search, node);
+            node_contractor::contract_node(
+                &mut preparation_graph,
+                &mut witness_search,
+                node,
+                usize::MAX,
+            );
             debug!(
                 "contracted node {} / {}, num edges fwd: {}, num edges bwd: {}",
                 rank + 1,

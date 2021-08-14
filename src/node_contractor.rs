@@ -29,8 +29,9 @@ pub fn contract_node(
     graph: &mut PreparationGraph,
     witness_search: &mut WitnessSearch,
     node: NodeId,
+    max_settled_nodes: usize,
 ) {
-    handle_shortcuts(graph, witness_search, node, add_shortcut);
+    handle_shortcuts(graph, witness_search, node, add_shortcut, max_settled_nodes);
     graph.disconnect(node);
 }
 
@@ -40,11 +41,18 @@ pub fn calc_relevance(
     witness_search: &mut WitnessSearch,
     node: NodeId,
     level: NodeId,
+    max_settled_nodes: usize,
 ) -> f32 {
     let mut num_shortcuts = 0;
-    handle_shortcuts(graph, witness_search, node, |_graph, _shortcut| {
-        num_shortcuts += 1;
-    });
+    handle_shortcuts(
+        graph,
+        witness_search,
+        node,
+        |_graph, _shortcut| {
+            num_shortcuts += 1;
+        },
+        max_settled_nodes,
+    );
     let num_edges = graph.get_out_edges(node).len() + graph.get_in_edges(node).len();
     let relevance = (params.hierarchy_depth_factor * level as f32)
         + (params.edge_quotient_factor * num_shortcuts as f32 + 1.0) / (num_edges as f32 + 1.0);
@@ -56,6 +64,7 @@ pub fn handle_shortcuts<F>(
     witness_search: &mut WitnessSearch,
     node: NodeId,
     mut handle_shortcut: F,
+    max_settled_nodes: usize,
 ) where
     F: FnMut(&mut PreparationGraph, Shortcut),
 {
@@ -68,7 +77,8 @@ pub fn handle_shortcuts<F>(
             // no need to find the actual weight of a witness path as long as we can be sure
             // that there is some witness with weight smaller or equal to the removed direct
             // path
-            let max_witness_weight = witness_search.find_max_weight(graph, out_node, weight);
+            let max_witness_weight =
+                witness_search.find_max_weight(graph, out_node, weight, max_settled_nodes);
             if max_witness_weight <= weight {
                 continue;
             }
@@ -175,7 +185,7 @@ mod tests {
         g.add_edge(3, 4, 3);
         g.add_edge(4, 2, 1);
         let mut witness_search = WitnessSearch::new(g.get_num_nodes());
-        node_contractor::contract_node(&mut g, &mut witness_search, 1);
+        node_contractor::contract_node(&mut g, &mut witness_search, 1, usize::MAX);
         // there should be a shortcut 0->2, but no shortcuts 0->4, 3->2
         // node 1 should be properly disconnected
         assert_eq!(0, g.get_out_edges(1).len());
@@ -199,12 +209,54 @@ mod tests {
         g.add_edge(1, 4, 1);
         let mut witness_search = WitnessSearch::new(g.get_num_nodes());
         let priorities = vec![
-            calc_relevance(&mut g, &Params::default(), &mut witness_search, 0, 0),
-            calc_relevance(&mut g, &Params::default(), &mut witness_search, 1, 0),
-            calc_relevance(&mut g, &Params::default(), &mut witness_search, 2, 0),
-            calc_relevance(&mut g, &Params::default(), &mut witness_search, 3, 0),
-            calc_relevance(&mut g, &Params::default(), &mut witness_search, 4, 0),
-            calc_relevance(&mut g, &Params::default(), &mut witness_search, 5, 0),
+            calc_relevance(
+                &mut g,
+                &Params::default(),
+                &mut witness_search,
+                0,
+                0,
+                usize::MAX,
+            ),
+            calc_relevance(
+                &mut g,
+                &Params::default(),
+                &mut witness_search,
+                1,
+                0,
+                usize::MAX,
+            ),
+            calc_relevance(
+                &mut g,
+                &Params::default(),
+                &mut witness_search,
+                2,
+                0,
+                usize::MAX,
+            ),
+            calc_relevance(
+                &mut g,
+                &Params::default(),
+                &mut witness_search,
+                3,
+                0,
+                usize::MAX,
+            ),
+            calc_relevance(
+                &mut g,
+                &Params::default(),
+                &mut witness_search,
+                4,
+                0,
+                usize::MAX,
+            ),
+            calc_relevance(
+                &mut g,
+                &Params::default(),
+                &mut witness_search,
+                5,
+                0,
+                usize::MAX,
+            ),
         ];
         println!("{:?}", priorities);
     }
@@ -212,9 +264,13 @@ mod tests {
     fn calc_shortcuts(g: &mut PreparationGraph, node: NodeId) -> Vec<Shortcut> {
         let mut witness_search = WitnessSearch::new(g.get_num_nodes());
         let mut shortcuts = vec![];
-        handle_shortcuts(g, &mut witness_search, node, |_g, shortcut| {
-            shortcuts.push(shortcut)
-        });
+        handle_shortcuts(
+            g,
+            &mut witness_search,
+            node,
+            |_g, shortcut| shortcuts.push(shortcut),
+            usize::MAX,
+        );
         shortcuts
     }
 }
