@@ -32,6 +32,15 @@ use super::preparation_graph::PreparationGraph;
 use crate::node_contractor;
 use crate::witness_search::WitnessSearch;
 
+// smaller values mean less time is spent on witness searches so building the fast graph takes less time.
+// however, smaller values also mean less witness paths are found so more unnecessary shortcuts
+// will be introduced which means it can take *more* time to build the fast graph.
+// so we need to find a balance betweeen too low and too large values...
+const MAX_SETTLED_NODES_RELEVANCE_MAIN : usize = 20;
+const MAX_SETTLED_NODES_RELEVANCE_NEIGHBORS : usize = 20;
+const MAX_SETTLED_NODES_CONTRACTION : usize = 100;
+const MAX_SETTLED_NODES_CONTRACTION_FIXED : usize = 100;
+
 pub struct FastGraphBuilder {
     fast_graph: FastGraph,
     num_nodes: usize,
@@ -85,7 +94,7 @@ impl FastGraphBuilder {
                 &mut witness_search,
                 node,
                 0,
-                20,
+                MAX_SETTLED_NODES_RELEVANCE_MAIN,
             ) as Weight;
             queue.push(node, Reverse(priority));
         }
@@ -126,7 +135,7 @@ impl FastGraphBuilder {
                 &mut preparation_graph,
                 &mut witness_search,
                 node,
-                100,
+                MAX_SETTLED_NODES_CONTRACTION,
             );
             for neighbor in neighbors {
                 levels[neighbor] = max(levels[neighbor], levels[node] + 1);
@@ -136,7 +145,7 @@ impl FastGraphBuilder {
                     &mut witness_search,
                     neighbor,
                     levels[neighbor],
-                    20,
+                    MAX_SETTLED_NODES_RELEVANCE_NEIGHBORS,
                 ) as Weight;
                 queue.change_priority(&neighbor, Reverse(priority));
             }
@@ -188,7 +197,7 @@ impl FastGraphBuilder {
                 &mut preparation_graph,
                 &mut witness_search,
                 node,
-                100,
+                MAX_SETTLED_NODES_CONTRACTION_FIXED,
             );
             debug!(
                 "contracted node {} / {}, num edges fwd: {}, num edges bwd: {}",
