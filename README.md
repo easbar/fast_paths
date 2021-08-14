@@ -119,12 +119,12 @@ For this to work `another_input_graph` must have the same number of nodes as `in
 
 |graph|metric|preparation time|average query time (micros)|
 |-|-|-|-|
-|NY city|distance|19 s|108|
-|CAL&NV|distance|85 s|243|
-|USA|distance|28 min|1452|
-|NY city|time|12 s|54|
-|CAL&NV|time|54 s|149|
-|USA|time|12 min|856|
+|NY city|distance|15 s|108|
+|CAL&NV|distance|70 s|243|
+|USA|distance|21 min|1452|
+|NY city|time|10 s|54|
+|CAL&NV|time|50 s|149|
+|USA|time|11 min|856|
 
 The shortest path calculation time was averaged over 100k random routing queries. The benchmarks were run using Rust 1.50.0
 

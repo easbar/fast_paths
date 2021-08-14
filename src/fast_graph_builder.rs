@@ -26,11 +26,11 @@ use crate::constants::Weight;
 use crate::constants::{EdgeId, NodeId, INVALID_EDGE, INVALID_NODE};
 use crate::fast_graph::FastGraphEdge;
 
-use super::dijkstra::Dijkstra;
 use super::fast_graph::FastGraph;
 use super::input_graph::InputGraph;
 use super::preparation_graph::PreparationGraph;
 use crate::node_contractor;
+use crate::witness_search::WitnessSearch;
 
 pub struct FastGraphBuilder {
     fast_graph: FastGraph,
@@ -75,14 +75,14 @@ impl FastGraphBuilder {
 
     fn run_contraction(&mut self, input_graph: &InputGraph, params: &Params) {
         let mut preparation_graph = PreparationGraph::from_input_graph(input_graph);
-        let mut dijkstra = Dijkstra::new(self.num_nodes);
+        let mut witness_search = WitnessSearch::new(self.num_nodes);
         let mut levels = vec![0; self.num_nodes];
         let mut queue = PriorityQueue::new();
         for node in 0..self.num_nodes {
             let priority = node_contractor::calc_relevance(
                 &mut preparation_graph,
                 params,
-                &mut dijkstra,
+                &mut witness_search,
                 node,
                 0,
             ) as Weight;
@@ -121,13 +121,13 @@ impl FastGraphBuilder {
             self.fast_graph.first_edge_ids_bwd[rank + 1] = self.fast_graph.get_num_in_edges();
 
             self.fast_graph.ranks[node] = rank;
-            node_contractor::contract_node(&mut preparation_graph, &mut dijkstra, node);
+            node_contractor::contract_node(&mut preparation_graph, &mut witness_search, node);
             for neighbor in neighbors {
                 levels[neighbor] = max(levels[neighbor], levels[node] + 1);
                 let priority = node_contractor::calc_relevance(
                     &mut preparation_graph,
                     params,
-                    &mut dijkstra,
+                    &mut witness_search,
                     neighbor,
                     levels[neighbor],
                 ) as Weight;
@@ -147,7 +147,7 @@ impl FastGraphBuilder {
 
     fn run_contraction_with_order(&mut self, input_graph: &InputGraph, order: &[NodeId]) {
         let mut preparation_graph = PreparationGraph::from_input_graph(input_graph);
-        let mut dijkstra = Dijkstra::new(self.num_nodes);
+        let mut witness_search = WitnessSearch::new(self.num_nodes);
         for (rank, node) in order.iter().cloned().enumerate() {
             if node >= self.num_nodes {
                 panic!("Order contains invalid node id: {}", node);
@@ -177,7 +177,7 @@ impl FastGraphBuilder {
             self.fast_graph.first_edge_ids_bwd[rank + 1] = self.fast_graph.get_num_in_edges();
 
             self.fast_graph.ranks[node] = rank;
-            node_contractor::contract_node(&mut preparation_graph, &mut dijkstra, node);
+            node_contractor::contract_node(&mut preparation_graph, &mut witness_search, node);
             debug!(
                 "contracted node {} / {}, num edges fwd: {}, num edges bwd: {}",
                 rank + 1,

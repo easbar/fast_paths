@@ -33,6 +33,7 @@ pub use crate::path_calculator::PathCalculator;
 pub use crate::shortest_path::ShortestPath;
 
 mod constants;
+#[cfg(test)]
 mod dijkstra;
 mod fast_graph;
 mod fast_graph32;
@@ -46,6 +47,7 @@ mod path_calculator;
 mod preparation_graph;
 mod shortest_path;
 mod valid_flags;
+mod witness_search;
 
 /// Prepares the given `InputGraph` for fast shortest path calculations.
 pub fn prepare(input_graph: &InputGraph) -> FastGraph {
@@ -576,7 +578,10 @@ mod tests {
     }
 
     fn create_seed() -> u64 {
-        SystemTime::now().duration_since(SystemTime::UNIX_EPOCH).unwrap().as_nanos() as u64
+        SystemTime::now()
+            .duration_since(SystemTime::UNIX_EPOCH)
+            .unwrap()
+            .as_nanos() as u64
     }
 
     /// Saves the given prepared graph to disk
