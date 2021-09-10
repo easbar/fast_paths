@@ -20,7 +20,7 @@
 use std::cmp;
 use std::fmt;
 use std::fs::File;
-use std::io::{BufRead, BufReader};
+use std::io::{BufRead, BufReader, BufWriter, Write};
 
 #[cfg(test)]
 use rand::rngs::StdRng;
@@ -51,10 +51,6 @@ impl InputGraph {
     #[cfg(test)]
     pub fn random(rng: &mut StdRng, num_nodes: usize, mean_degree: f32) -> Self {
         InputGraph::build_random_graph(rng, num_nodes, mean_degree)
-    }
-
-    pub fn from_file(filename: &str) -> Self {
-        InputGraph::read_from_file(filename)
     }
 
     pub fn add_edge(&mut self, from: NodeId, to: NodeId, weight: Weight) -> usize {
@@ -184,7 +180,7 @@ impl InputGraph {
     /// Reads input graph from a text file, using the following format:
     /// a <from> <to> <weight>
     /// Mostly used for performance testing.
-    fn read_from_file(filename: &str) -> Self {
+    pub fn from_file(filename: &str) -> Self {
         let file = File::open(filename).unwrap();
         let reader = BufReader::new(file);
         let mut g = InputGraph::new();
@@ -205,6 +201,17 @@ impl InputGraph {
         }
         g.freeze();
         g
+    }
+
+    /// Writes the input graph to a text file, using the following format:
+    /// a <from> <to> <weight>
+    /// Mostly used for performance testing.
+    pub fn to_file(&self, filename: &str) -> Result<(), std::io::Error> {
+        let mut f = BufWriter::new(File::create(filename)?);
+        for edge in self.get_edges() {
+            writeln!(f, "a {} {} {}", edge.from, edge.to, edge.weight)?;
+        }
+        Ok(())
     }
 }
 
