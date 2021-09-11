@@ -188,18 +188,16 @@ impl InputGraph {
         let file = File::open(filename).unwrap();
         let reader = BufReader::new(file);
         let mut g = InputGraph::new();
-        for (_index, line) in reader.lines().enumerate() {
+        for line in reader.lines() {
             let s: String = line.unwrap();
             if !s.starts_with('a') {
                 continue;
             } else {
-                let entries = s.split_whitespace().collect::<Vec<&str>>()[1..4]
-                    .iter()
-                    .map(|m| m.parse::<usize>().unwrap())
-                    .collect::<Vec<usize>>();
-                let from = entries[0];
-                let to = entries[1];
-                let weight = entries[2];
+                let mut split = s[2..].split_whitespace();
+                let from = split.next().unwrap().parse::<usize>().unwrap();
+                let to = split.next().unwrap().parse::<usize>().unwrap();
+                let weight = split.next().unwrap().parse::<usize>().unwrap();
+                assert!(split.next().is_none(), "Invalid arc line: {}", s);
                 g.add_edge(from, to, weight);
             }
         }
