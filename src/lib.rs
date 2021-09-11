@@ -557,7 +557,7 @@ mod tests {
             time.elapsed_ms()
         );
         println!(
-            "query time on average ............. {} micros",
+            "query time on average ............. {} μs",
             time.elapsed().as_micros() / (num_queries as u128)
         );
         assert_eq!(expected_checksum, checksum, "invalid checksum");
