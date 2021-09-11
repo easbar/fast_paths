@@ -52,9 +52,9 @@ impl WitnessSearch {
     /// Initializes the witness search for a given start and avoid node. Calling this method
     /// resets/clears previously calculated data.
     pub fn init(&mut self, start: NodeId, avoid_node: NodeId) {
-        assert!(start != INVALID_NODE, "the start node must be valid");
-        assert!(
-            start != avoid_node,
+        assert_ne!(start, INVALID_NODE, "the start node must be valid");
+        assert_ne!(
+            start, avoid_node,
             "path calculation must not start with avoided node"
         );
         self.start_node = start;
@@ -94,8 +94,8 @@ impl WitnessSearch {
             self.num_nodes,
             "given graph has invalid node count"
         );
-        assert!(
-            self.start_node != INVALID_NODE,
+        assert_ne!(
+            self.start_node, INVALID_NODE,
             "the start node must be valid, call init() before find_max_weight()"
         );
         assert!(

@@ -418,7 +418,7 @@ mod tests {
         println!("Running performance test for ballard");
         run_performance_test(
             &InputGraph::from_file("meta/test_maps/graph_ballard.gr"),
-            &Params::new(0.01),
+            &Params::default(),
             28409159409,
             14992,
         );

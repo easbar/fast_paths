@@ -32,15 +32,6 @@ use super::preparation_graph::PreparationGraph;
 use crate::node_contractor;
 use crate::witness_search::WitnessSearch;
 
-// smaller values mean less time is spent on witness searches so building the fast graph takes less time.
-// however, smaller values also mean less witness paths are found so more unnecessary shortcuts
-// will be introduced which means it can take *more* time to build the fast graph.
-// so we need to find a balance betweeen too low and too large values...
-const MAX_SETTLED_NODES_RELEVANCE_MAIN : usize = 20;
-const MAX_SETTLED_NODES_RELEVANCE_NEIGHBORS : usize = 20;
-const MAX_SETTLED_NODES_CONTRACTION : usize = 100;
-const MAX_SETTLED_NODES_CONTRACTION_FIXED : usize = 100;
-
 pub struct FastGraphBuilder {
     fast_graph: FastGraph,
     num_nodes: usize,
@@ -72,13 +63,25 @@ impl FastGraphBuilder {
         input_graph: &InputGraph,
         order: &[NodeId],
     ) -> Result<FastGraph, String> {
+        FastGraphBuilder::build_with_order_with_params(
+            input_graph,
+            order,
+            &ParamsWithOrder::default(),
+        )
+    }
+
+    pub fn build_with_order_with_params(
+        input_graph: &InputGraph,
+        order: &[NodeId],
+        params: &ParamsWithOrder,
+    ) -> Result<FastGraph, String> {
         if input_graph.get_num_nodes() != order.len() {
             return Err(String::from(
                 "The given order must have as many nodes as the input graph",
             ));
         }
         let mut builder = FastGraphBuilder::new(input_graph);
-        builder.run_contraction_with_order(input_graph, order);
+        builder.run_contraction_with_order(input_graph, order, params);
         Ok(builder.fast_graph)
     }
 
@@ -94,7 +97,7 @@ impl FastGraphBuilder {
                 &mut witness_search,
                 node,
                 0,
-                MAX_SETTLED_NODES_RELEVANCE_MAIN,
+                params.max_settled_nodes_initial_relevance,
             ) as Weight;
             queue.push(node, Reverse(priority));
         }
@@ -135,7 +138,7 @@ impl FastGraphBuilder {
                 &mut preparation_graph,
                 &mut witness_search,
                 node,
-                MAX_SETTLED_NODES_CONTRACTION,
+                params.max_settled_nodes_contraction,
             );
             for neighbor in neighbors {
                 levels[neighbor] = max(levels[neighbor], levels[node] + 1);
@@ -145,7 +148,7 @@ impl FastGraphBuilder {
                     &mut witness_search,
                     neighbor,
                     levels[neighbor],
-                    MAX_SETTLED_NODES_RELEVANCE_NEIGHBORS,
+                    params.max_settled_nodes_neighbor_relevance,
                 ) as Weight;
                 queue.change_priority(&neighbor, Reverse(priority));
             }
@@ -161,7 +164,12 @@ impl FastGraphBuilder {
         self.finish_contraction();
     }
 
-    fn run_contraction_with_order(&mut self, input_graph: &InputGraph, order: &[NodeId]) {
+    fn run_contraction_with_order(
+        &mut self,
+        input_graph: &InputGraph,
+        order: &[NodeId],
+        params: &ParamsWithOrder,
+    ) {
         let mut preparation_graph = PreparationGraph::from_input_graph(input_graph);
         let mut witness_search = WitnessSearch::new(self.num_nodes);
         for (rank, node) in order.iter().cloned().enumerate() {
@@ -197,7 +205,7 @@ impl FastGraphBuilder {
                 &mut preparation_graph,
                 &mut witness_search,
                 node,
-                MAX_SETTLED_NODES_CONTRACTION_FIXED,
+                params.max_settled_nodes_contraction_with_order,
             );
             debug!(
                 "contracted node {} / {}, num edges fwd: {}, num edges bwd: {}",
@@ -263,18 +271,69 @@ impl FastGraphBuilder {
 pub struct Params {
     pub hierarchy_depth_factor: f32,
     pub edge_quotient_factor: f32,
+    /// The maximum number of settled nodes per witness search performed when priorities are
+    /// calculated for all nodes initially. Since this does not take much time normally you should
+    /// probably keep the default.
+    pub max_settled_nodes_initial_relevance: usize,
+    /// The maximum number of settled nodes per witness search performed when updating priorities
+    /// of neighbor nodes after a node was contracted. The preparation time can strongly depend on
+    /// this value and even setting it to 0 might be feasible. Higher values (like 500+) should
+    /// yield less shortcuts and faster query times at the cost of a longer preparation time. Lower
+    /// values (like 0-100) should yield faster preparation at the cost of slower query times and
+    /// more shortcuts. To know for sure you should still make your own experiments for your
+    /// specific graph.
+    pub max_settled_nodes_neighbor_relevance: usize,
+    /// The maximum number of settled nodes per witness search when contracting a node. Higher values
+    /// like 500+ mean less shortcuts (fast graph edges), slower preparation and faster queries while
+    /// lower values mean more shortcuts, slower queries and faster preparation.
+    pub max_settled_nodes_contraction: usize,
 }
 
 impl Params {
-    pub fn new(ratio: f32) -> Self {
+    pub fn new(
+        ratio: f32,
+        max_settled_nodes_initial_relevance: usize,
+        max_settled_nodes_neighbor_relevance: usize,
+        max_settled_nodes_contraction: usize,
+    ) -> Self {
         Params {
             hierarchy_depth_factor: ratio,
             edge_quotient_factor: 1.0,
+            max_settled_nodes_initial_relevance,
+            max_settled_nodes_neighbor_relevance,
+            max_settled_nodes_contraction,
         }
     }
 
     pub fn default() -> Self {
-        Params::new(0.1)
+        Params {
+            hierarchy_depth_factor: 0.1,
+            edge_quotient_factor: 1.0,
+            max_settled_nodes_initial_relevance: 100,
+            max_settled_nodes_neighbor_relevance: 3,
+            max_settled_nodes_contraction: 100,
+        }
+    }
+}
+
+pub struct ParamsWithOrder {
+    /// The maximum number of settled nodes per witness search when contracting a node. Smaller
+    /// values mean slower queries, more shortcuts, but faster preparation time. Note that the
+    /// performance also can strongly depend on the relation between this parameter and
+    /// Params::max_settled_nodes_contraction that was used to build the FastGraph and obtain the
+    /// node ordering initially. In most cases you should use the same value for these two parameters.
+    pub max_settled_nodes_contraction_with_order: usize,
+}
+
+impl ParamsWithOrder {
+    pub fn new(max_settled_nodes_contraction_with_order: usize) -> Self {
+        ParamsWithOrder {
+            max_settled_nodes_contraction_with_order,
+        }
+    }
+
+    pub fn default() -> Self {
+        ParamsWithOrder::new(100)
     }
 }
 
