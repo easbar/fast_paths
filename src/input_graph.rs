@@ -181,9 +181,18 @@ impl InputGraph {
         result
     }
 
-    /// Reads input graph from a text file, using the following format:
-    /// a <from> <to> <weight>
-    /// Mostly used for performance testing.
+    /// Reads an input graph from a text file, using the DIMACS format:
+    ///
+    /// * empty lines and lines starting with 'c' are ignored:
+    ///   c <comment>
+    /// * the first non-empty, non-comment line must state the number of nodes and edges of the graph:
+    ///   p <num_nodes> <num_edges>
+    /// * one line per (directed) edge:
+    ///   a <from> <to> <weight>
+    ///   where <from> and <to> must be >= 1 and <weight> must be >= 0. Note that while the input
+    ///   format uses 1-based node IDs, fast_paths uses 0-based node IDs internally.
+    ///
+    /// This import function is mostly used for performance testing.
     fn read_from_file(filename: &str) -> Self {
         let file = File::open(filename).unwrap();
         let reader = BufReader::new(file);
@@ -199,8 +208,11 @@ impl InputGraph {
                     .collect::<Vec<usize>>();
                 let from = entries[0];
                 let to = entries[1];
+                if from == 0 || to == 0 {
+                    panic!("Node IDs must be >= 1 when importing InputGraph from a text file");
+                }
                 let weight = entries[2];
-                g.add_edge(from, to, weight);
+                g.add_edge(from - 1, to - 1, weight);
             }
         }
         g.freeze();
