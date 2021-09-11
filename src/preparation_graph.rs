@@ -98,7 +98,7 @@ impl PreparationGraph {
                 return true;
             }
         }
-        return false;
+        false
     }
 
     pub fn get_num_nodes(&self) -> usize {
@@ -137,21 +137,20 @@ impl PreparationGraph {
     }
 
     pub fn get_out_edges(&self, node: NodeId) -> &Vec<Arc> {
-        return &self.out_edges[node];
+        &self.out_edges[node]
     }
 
     pub fn get_in_edges(&self, node: NodeId) -> &Vec<Arc> {
-        return &self.in_edges[node];
+        &self.in_edges[node]
     }
 
     fn assert_valid_node_id(&self, node: NodeId) {
-        assert!(
-            node < self.num_nodes,
-            format!(
-                "invalid node id {}, must be in [0, {}[",
+        if node >= self.num_nodes {
+            panic!(
+                "invalid node id {}, must be in [0, {})",
                 node, self.num_nodes
-            )
-        );
+            );
+        }
     }
 }
 

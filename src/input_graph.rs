@@ -48,13 +48,40 @@ impl InputGraph {
         }
     }
 
+    /// Builds a random input graph, mostly used for testing purposes
     #[cfg(test)]
     pub fn random(rng: &mut StdRng, num_nodes: usize, mean_degree: f32) -> Self {
         InputGraph::build_random_graph(rng, num_nodes, mean_degree)
     }
 
+    /// Reads an input graph from a text file, using the following format:
+    /// a <from> <to> <weight>
+    /// where <from>,<to> and <weight> must be >= 0.
+    /// All other lines are ignored.
+    /// This function is compatible to DIMACS files, but consider using InputGraph::from_dimacs
+    /// for these instead.
+    /// Mostly used for performance testing.
     pub fn from_file(filename: &str) -> Self {
         InputGraph::read_from_file(filename)
+    }
+
+    /// Reads an input graph from a text file, using the DIMACS format:
+    /// http://users.diag.uniroma1.it/challenge9/format.shtml#graph
+    ///
+    /// * empty lines and lines starting with 'c' are ignored:
+    ///   c <comment>
+    /// * the 'problem line' states the number of nodes and edges of the graph:
+    ///   it must be written before any arc line
+    ///   p <num_nodes> <num_edges>
+    /// * there is one line per (directed) edge:
+    ///   a <from> <to> <weight>
+    ///   where <from> and <to> must be >= 1 and <weight> must be >= 0
+    ///   Note that here, in contrast to InputGraph::from_file, the node IDs are 1-based, not
+    ///   0-based. They will be converted to 0-based IDs internally.
+    ///
+    /// Mostly used for performance testing.
+    pub fn from_dimacs_file(filename: &str) -> Self {
+        InputGraph::read_from_dimacs(filename)
     }
 
     pub fn add_edge(&mut self, from: NodeId, to: NodeId, weight: Weight) -> usize {
@@ -94,7 +121,7 @@ impl InputGraph {
     }
 
     fn sort(&mut self) {
-        &self.edges.sort_by(|a, b| {
+        self.edges.sort_by(|a, b| {
             a.from
                 .cmp(&b.from)
                 .then(a.to.cmp(&b.to))
@@ -153,10 +180,13 @@ impl InputGraph {
         if bidir {
             self.edges.push(Edge::new(to, from, weight));
         }
-        return if bidir { 2 } else { 1 };
+        if bidir {
+            2
+        } else {
+            1
+        }
     }
 
-    /// Builds a random graph, mostly used for testing purposes
     #[cfg(test)]
     fn build_random_graph(rng: &mut StdRng, num_nodes: usize, mean_degree: f32) -> InputGraph {
         let num_edges = (mean_degree * num_nodes as f32) as usize;
@@ -177,36 +207,116 @@ impl InputGraph {
         result
     }
 
-    /// Reads input graph from a text file, using the following format:
-    /// a <from> <to> <weight>
-    /// Mostly used for performance testing.
     fn read_from_file(filename: &str) -> Self {
         let file = File::open(filename).unwrap();
         let reader = BufReader::new(file);
         let mut g = InputGraph::new();
-        for (_index, line) in reader.lines().enumerate() {
+        for (index, line) in reader.lines().enumerate() {
             let s: String = line.unwrap();
-            if !s.starts_with("a") {
-                continue;
-            } else {
-                let entries = s.split_whitespace().collect::<Vec<&str>>()[1..4]
-                    .iter()
-                    .map(|m| m.parse::<usize>().unwrap())
-                    .collect::<Vec<usize>>();
-                let from = entries[0];
-                let to = entries[1];
-                let weight = entries[2];
+            if s.starts_with("a ") {
+                let (from, to, weight) = InputGraph::read_arc_line(index, &s);
                 g.add_edge(from, to, weight);
+            } else {
+                continue;
             }
         }
         g.freeze();
         g
+    }
+
+    fn read_from_dimacs(filename: &str) -> Self {
+        let file = File::open(filename).unwrap();
+        let reader = BufReader::new(file);
+        let mut g = InputGraph::new();
+        let mut nodes = 0;
+        let mut edges = 0;
+        let mut curr_edges = 0;
+        let mut found_problem_line = false;
+        for (index, line) in reader.lines().enumerate() {
+            let s: String = line.unwrap();
+            if s.is_empty() || s.starts_with("c") {
+                continue;
+            } else if s.starts_with("p sp ") {
+                if found_problem_line {
+                    panic!(
+                        "There should be only one problem line, but found: {} | {}",
+                        index + 1,
+                        s
+                    );
+                }
+                let mut split = s[5..].split_whitespace();
+                nodes = split.next().unwrap().parse::<usize>().unwrap();
+                edges = split.next().unwrap().parse::<usize>().unwrap();
+                assert!(split.next().is_none(), "Invalid problem line: {}", s);
+                found_problem_line = true;
+            } else if s.starts_with("a ") {
+                assert!(
+                    found_problem_line,
+                    "The problem line must be written before the arc lines"
+                );
+                let (from, to, weight) = InputGraph::read_arc_line(index, &s);
+                assert!(
+                    from <= nodes && to <= nodes,
+                    "Invalid nodes in line: {} | {}",
+                    index + 1,
+                    s
+                );
+                assert!(
+                    curr_edges < edges,
+                    "Too many arc lines: {}, expected: {}",
+                    curr_edges + 1,
+                    edges
+                );
+
+                assert!(
+                    from > 0 && to > 0,
+                    "Invalid arc line: {} | {}",
+                    index + 1,
+                    s
+                );
+                // we convert 1-based node IDs from DIMACS to 0-based node IDs
+                g.add_edge(from - 1, to - 1, weight);
+                curr_edges += 1;
+            } else {
+                panic!(
+                    "Invalid line: {} {}\nAll non-empty lines must start with 'c', 'p' or 'a'",
+                    index, s
+                );
+            }
+        }
+        assert_eq!(
+            curr_edges, edges,
+            "Not enough arc lines: {}, expected: {}",
+            curr_edges, edges
+        );
+        g.freeze();
+        g
+    }
+
+    fn read_arc_line(index: usize, line: &String) -> (usize, usize, usize) {
+        let mut split = line[2..].split_whitespace();
+        let from = split.next().unwrap().parse::<usize>().unwrap();
+        let to = split.next().unwrap().parse::<usize>().unwrap();
+        let weight = split.next().unwrap().parse::<usize>().unwrap();
+        assert!(
+            split.next().is_none(),
+            "Invalid arc line: {} | {}",
+            index + 1,
+            line
+        );
+        (from, to, weight)
     }
 }
 
 impl fmt::Debug for InputGraph {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{}", self.unit_test_output_string())
+    }
+}
+
+impl Default for InputGraph {
+    fn default() -> Self {
+        Self::new()
     }
 }
 

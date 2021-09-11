@@ -19,54 +19,60 @@
 
 use crate::constants::NodeId;
 use crate::constants::Weight;
-use crate::dijkstra::Dijkstra;
 use crate::fast_graph_builder::Params;
 use crate::preparation_graph::PreparationGraph;
+use crate::witness_search::WitnessSearch;
 
 /// removes all edges incident to `node` from the graph and adds shortcuts between all neighbors
 /// of `node` such that all shortest paths are preserved
-pub fn contract_node(graph: &mut PreparationGraph, dijkstra: &mut Dijkstra, node: NodeId) {
-    handle_shortcuts(graph, dijkstra, node, add_shortcut);
+pub fn contract_node(
+    graph: &mut PreparationGraph,
+    witness_search: &mut WitnessSearch,
+    node: NodeId,
+) {
+    handle_shortcuts(graph, witness_search, node, add_shortcut);
     graph.disconnect(node);
 }
 
 pub fn calc_relevance(
     graph: &mut PreparationGraph,
     params: &Params,
-    dijkstra: &mut Dijkstra,
+    witness_search: &mut WitnessSearch,
     node: NodeId,
     level: NodeId,
 ) -> f32 {
     let mut num_shortcuts = 0;
-    handle_shortcuts(graph, dijkstra, node, |_graph, _shortcut| {
+    handle_shortcuts(graph, witness_search, node, |_graph, _shortcut| {
         num_shortcuts += 1;
     });
     let num_edges = graph.get_out_edges(node).len() + graph.get_in_edges(node).len();
-    let mut relevance = (params.hierarchy_depth_factor * level as f32)
+    let relevance = (params.hierarchy_depth_factor * level as f32)
         + (params.edge_quotient_factor * num_shortcuts as f32 + 1.0) / (num_edges as f32 + 1.0);
-    relevance *= 1000.0;
-    return relevance;
+    relevance * 1000.0
 }
 
 pub fn handle_shortcuts<F>(
     graph: &mut PreparationGraph,
-    dijkstra: &mut Dijkstra,
+    witness_search: &mut WitnessSearch,
     node: NodeId,
     mut handle_shortcut: F,
 ) where
     F: FnMut(&mut PreparationGraph, Shortcut),
 {
-    dijkstra.avoid_node(node);
     for i in 0..graph.in_edges[node].len() {
+        let in_node = graph.in_edges[node][i].adj_node;
+        witness_search.init(in_node, node);
         for j in 0..graph.out_edges[node].len() {
             let weight = graph.in_edges[node][i].weight + graph.out_edges[node][j].weight;
-            dijkstra.set_max_weight(weight);
-            let in_node = graph.in_edges[node][i].adj_node;
             let out_node = graph.out_edges[node][j].adj_node;
-            let best_weight = dijkstra.calc_weight(graph, in_node, out_node);
-            if best_weight.is_none() {
-                handle_shortcut(graph, Shortcut::new(in_node, out_node, node, weight))
+            // no need to find the actual weight of a witness path as long as we can be sure
+            // that there is some witness with weight smaller or equal to the removed direct
+            // path
+            let max_witness_weight = witness_search.find_max_weight(graph, out_node, weight);
+            if max_witness_weight <= weight {
+                continue;
             }
+            handle_shortcut(graph, Shortcut::new(in_node, out_node, node, weight))
         }
     }
 }
@@ -103,6 +109,7 @@ impl Shortcut {
 mod tests {
     use super::*;
     use crate::node_contractor;
+    use crate::witness_search::WitnessSearch;
 
     #[test]
     fn calc_shortcuts_no_witness() {
@@ -167,8 +174,8 @@ mod tests {
         g.add_edge(1, 4, 4);
         g.add_edge(3, 4, 3);
         g.add_edge(4, 2, 1);
-        let mut dijkstra = Dijkstra::new(g.get_num_nodes());
-        node_contractor::contract_node(&mut g, &mut dijkstra, 1);
+        let mut witness_search = WitnessSearch::new(g.get_num_nodes());
+        node_contractor::contract_node(&mut g, &mut witness_search, 1);
         // there should be a shortcut 0->2, but no shortcuts 0->4, 3->2
         // node 1 should be properly disconnected
         assert_eq!(0, g.get_out_edges(1).len());
@@ -190,22 +197,22 @@ mod tests {
         g.add_edge(2, 5, 1);
         g.add_edge(3, 1, 1);
         g.add_edge(1, 4, 1);
-        let mut dijkstra = Dijkstra::new(g.get_num_nodes());
+        let mut witness_search = WitnessSearch::new(g.get_num_nodes());
         let priorities = vec![
-            calc_relevance(&mut g, &Params::default(), &mut dijkstra, 0, 0),
-            calc_relevance(&mut g, &Params::default(), &mut dijkstra, 1, 0),
-            calc_relevance(&mut g, &Params::default(), &mut dijkstra, 2, 0),
-            calc_relevance(&mut g, &Params::default(), &mut dijkstra, 3, 0),
-            calc_relevance(&mut g, &Params::default(), &mut dijkstra, 4, 0),
-            calc_relevance(&mut g, &Params::default(), &mut dijkstra, 5, 0),
+            calc_relevance(&mut g, &Params::default(), &mut witness_search, 0, 0),
+            calc_relevance(&mut g, &Params::default(), &mut witness_search, 1, 0),
+            calc_relevance(&mut g, &Params::default(), &mut witness_search, 2, 0),
+            calc_relevance(&mut g, &Params::default(), &mut witness_search, 3, 0),
+            calc_relevance(&mut g, &Params::default(), &mut witness_search, 4, 0),
+            calc_relevance(&mut g, &Params::default(), &mut witness_search, 5, 0),
         ];
         println!("{:?}", priorities);
     }
 
     fn calc_shortcuts(g: &mut PreparationGraph, node: NodeId) -> Vec<Shortcut> {
-        let mut dijkstra = Dijkstra::new(g.get_num_nodes());
+        let mut witness_search = WitnessSearch::new(g.get_num_nodes());
         let mut shortcuts = vec![];
-        handle_shortcuts(g, &mut dijkstra, node, |_g, shortcut| {
+        handle_shortcuts(g, &mut witness_search, node, |_g, shortcut| {
             shortcuts.push(shortcut)
         });
         shortcuts

@@ -1,3 +1,6 @@
+0.3.0 (not yet released)
+      allow passing &[T] instead of &Vec<T> in a few places, #32
+      add calc_path_multiple_sources_and_targets, #30
 0.2.0 add clone and copy derives, #26
       faster fast_graph building
       faster queries (stall on demand optimization), #18

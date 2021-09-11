@@ -10,7 +10,7 @@ In `Cargo.toml`
 
 ```toml
 [dependencies]
-fast_paths = "0.1.0"
+fast_paths = "0.2.0"
 
 ```
 ### Basic usage
@@ -62,6 +62,21 @@ let mut path_calculator = fast_paths::create_calculator(&fast_graph);
 let shortest_path = path_calculator.calc_path(&fast_graph, 8, 6);
 ```
 
+### Calculating paths between multiple sources and targets
+
+We can also efficiently calculate the shortest path when we want to consider multiple sources or targets:
+
+```rust
+// ... see above
+// we want to either start at node 2 or 3 both of which carry a different initial weight
+let sources = vec![(3, 5), (2, 7)];
+// ... and go to either node 6 or 8 which also both carry a cost upon arrival
+let targets = vec![(6, 2), (8, 10)];
+// calculate the path with minimum cost that connects any of the sources with any of the targets while taking into 
+// account the initial weights of each source and node
+let shortest_path = path_calculator.calc_path_multiple_sources_and_targets(&fast_graph, sources, targets);
+```
+
 ### Serializing the prepared graph
 
 `FastGraph` implements standard [Serde](https://serde.rs/) serialization.
@@ -104,12 +119,12 @@ For this to work `another_input_graph` must have the same number of nodes as `in
 
 |graph|metric|preparation time|average query time (micros)|
 |-|-|-|-|
-|NY city|distance|19 s|108|
-|CAL&NV|distance|85 s|243|
-|USA|distance|28 min|1452|
-|NY city|time|12 s|54|
-|CAL&NV|time|54 s|149|
-|USA|time|12 min|856|
+|NY city|distance|15 s|108|
+|CAL&NV|distance|70 s|243|
+|USA|distance|21 min|1452|
+|NY city|time|10 s|54|
+|CAL&NV|time|50 s|149|
+|USA|time|11 min|856|
 
 The shortest path calculation time was averaged over 100k random routing queries. The benchmarks were run using Rust 1.50.0
 

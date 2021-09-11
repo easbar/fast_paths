@@ -30,9 +30,6 @@ pub struct HeapItem {
 
 impl HeapItem {
     pub fn new(weight: Weight, node_id: NodeId) -> HeapItem {
-        if weight != weight {
-            panic!("weight must not be NaN");
-        }
         HeapItem { weight, node_id }
     }
 }

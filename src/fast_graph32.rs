@@ -80,20 +80,18 @@ pub struct FastGraphEdge32 {
 fn usize_to_u32(int: usize) -> u32 {
     if int == std::usize::MAX {
         usize_to_u32(std::u32::MAX as usize)
+    } else if let Ok(x) = u32::try_from(int) {
+        x
     } else {
-        if let Ok(x) = u32::try_from(int) {
-            x
-        } else {
-            panic!("Could not convert {} to a 32-bit integer", int);
-        }
+        panic!("Could not convert {} to a 32-bit integer", int);
     }
 }
 
-fn usize_to_u32_vec(vec: &Vec<usize>) -> Vec<u32> {
+fn usize_to_u32_vec(vec: &[usize]) -> Vec<u32> {
     vec.iter().map(|i| usize_to_u32(*i)).collect()
 }
 
-fn usize_to_u32_edges(vec: &Vec<FastGraphEdge>) -> Vec<FastGraphEdge32> {
+fn usize_to_u32_edges(vec: &[FastGraphEdge]) -> Vec<FastGraphEdge32> {
     vec.iter().map(|e| usize_to_u32_edge(e)).collect()
 }
 
@@ -115,11 +113,11 @@ fn u32_to_usize(int: u32) -> usize {
     }
 }
 
-fn u32_to_usize_vec(vec: &Vec<u32>) -> Vec<usize> {
+fn u32_to_usize_vec(vec: &[u32]) -> Vec<usize> {
     vec.iter().map(|i| u32_to_usize(*i)).collect()
 }
 
-fn u32_to_usize_edges(vec: &Vec<FastGraphEdge32>) -> Vec<FastGraphEdge> {
+fn u32_to_usize_edges(vec: &[FastGraphEdge32]) -> Vec<FastGraphEdge> {
     vec.iter().map(|e| u32_to_usize_edge(e)).collect()
 }
 

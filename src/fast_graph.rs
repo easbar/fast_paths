@@ -119,6 +119,6 @@ impl FastGraphEdge {
                 || (self.replaced_in_edge != INVALID_EDGE
                     && self.replaced_out_edge != INVALID_EDGE)
         );
-        return self.replaced_in_edge != INVALID_EDGE;
+        self.replaced_in_edge != INVALID_EDGE
     }
 }
