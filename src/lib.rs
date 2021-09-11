@@ -442,9 +442,9 @@ mod tests {
         println!("Running performance test for New York City dist");
         // DIMACS road network for New York City using the road distance as weight
         run_performance_test(
-            &InputGraph::from_file("USA-road-d.NY.gr"),
+            &InputGraph::from_dimacs_file("USA-road-d.NY.gr"),
             &Params::default(),
-            50093653183,
+            50030355437,
             0,
         )
     }
@@ -455,9 +455,9 @@ mod tests {
         println!("Running performance test for New York City time");
         // DIMACS road network for New York City using the travel time as weight
         run_performance_test(
-            &InputGraph::from_file("USA-road-t.NY.gr"),
+            &InputGraph::from_dimacs_file("USA-road-t.NY.gr"),
             &Params::default(),
-            67076802401,
+            67055135006,
             0,
         );
     }
@@ -468,9 +468,9 @@ mod tests {
         println!("Running performance test for California&Nevada dist");
         // DIMACS road network for California&Nevada using the road distance as weight
         run_performance_test(
-            &InputGraph::from_file("USA-road-d.CAL.gr"),
+            &InputGraph::from_dimacs_file("USA-road-d.CAL.gr"),
             &Params::default(),
-            498599500458,
+            501405803172,
             0,
         )
     }
@@ -481,9 +481,9 @@ mod tests {
         println!("Running performance test for California&Nevada time");
         // DIMACS road network for California&Nevada using the travel time as weight
         run_performance_test(
-            &InputGraph::from_file("USA-road-t.CAL.gr"),
+            &InputGraph::from_dimacs_file("USA-road-t.CAL.gr"),
             &Params::default(),
-            622658447541,
+            626039623642,
             0,
         );
     }
@@ -494,9 +494,9 @@ mod tests {
         println!("Running performance test for USA dist");
         // DIMACS road network for USA using the road distance as weight
         run_performance_test(
-            &InputGraph::from_file("USA-road-d.USA.gr"),
+            &InputGraph::from_dimacs_file("USA-road-d.USA.gr"),
             &Params::default(),
-            1863022830856,
+            1857875271230,
             0,
         )
     }
@@ -507,9 +507,9 @@ mod tests {
         println!("Running performance test for USA time");
         // DIMACS road network for USA using the travel time as weight
         run_performance_test(
-            &InputGraph::from_file("USA-road-t.USA.gr"),
+            &InputGraph::from_dimacs_file("USA-road-t.USA.gr"),
             &Params::default(),
-            2085838396388,
+            2081172750426,
             0,
         );
     }
