@@ -452,18 +452,9 @@ mod tests {
     #[test]
     fn run_performance_test_dist_fixed_ordering() {
         println!("Running performance test for Bremen dist (fixed node ordering)");
-        let input_graph = InputGraph::from_file("meta/test_maps/bremen_dist.gr");
-        let mut fast_graph = prepare(&input_graph);
-        let order = get_node_ordering(&fast_graph);
-        prepare_algo(
-            &mut |input_graph| fast_graph = prepare_with_order(input_graph, &order).unwrap(),
-            &input_graph,
-        );
-        print_fast_graph_stats(&fast_graph);
-        let mut path_calculator = PathCalculator::new(fast_graph.get_num_nodes());
-        do_run_performance_test(
-            &mut |s, t| path_calculator.calc_path(&fast_graph, s, t),
-            input_graph.get_num_nodes(),
+        run_performance_test_fixed_ordering(
+            &InputGraph::from_file("meta/test_maps/bremen_dist.gr"),
+            &Params::default(),
             845493338,
             30265,
         );
@@ -478,6 +469,34 @@ mod tests {
         let mut fast_graph = FastGraph::new(1);
         prepare_algo(
             &mut |input_graph| fast_graph = prepare_with_params(input_graph, params),
+            &input_graph,
+        );
+        print_fast_graph_stats(&fast_graph);
+        let mut path_calculator = PathCalculator::new(fast_graph.get_num_nodes());
+        do_run_performance_test(
+            &mut |s, t| path_calculator.calc_path(&fast_graph, s, t),
+            input_graph.get_num_nodes(),
+            expected_checksum,
+            expected_num_not_found,
+        );
+    }
+
+    fn run_performance_test_fixed_ordering(
+        input_graph: &InputGraph,
+        params: &Params,
+        expected_checksum: usize,
+        expected_num_not_found: usize,
+    ) {
+        let mut time = Stopwatch::start_new();
+        let mut fast_graph = prepare_with_params(input_graph, params);
+        time.stop();
+        println!(
+            "preparation time (heuristic order). {} ms",
+            time.elapsed_ms()
+        );
+        let order = get_node_ordering(&fast_graph);
+        prepare_algo(
+            &mut |input_graph| fast_graph = prepare_with_order(input_graph, &order).unwrap(),
             &input_graph,
         );
         print_fast_graph_stats(&fast_graph);
