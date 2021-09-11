@@ -27,6 +27,7 @@ pub use crate::fast_graph::FastGraph;
 pub use crate::fast_graph32::FastGraph32;
 pub use crate::fast_graph_builder::FastGraphBuilder;
 pub use crate::fast_graph_builder::Params;
+use crate::fast_graph_builder::ParamsWithOrder;
 pub use crate::input_graph::Edge;
 pub use crate::input_graph::InputGraph;
 pub use crate::path_calculator::PathCalculator;
@@ -65,6 +66,15 @@ pub fn prepare_with_params(input_graph: &InputGraph, params: &Params) -> FastGra
 /// of the edge weights only.
 pub fn prepare_with_order(input_graph: &InputGraph, order: &[NodeId]) -> Result<FastGraph, String> {
     FastGraphBuilder::build_with_order(input_graph, order)
+}
+
+/// Like `prepare_with_order()`, but allows specifying some parameters used for the graph preparation
+pub fn prepare_with_order_with_params(
+    input_graph: &InputGraph,
+    order: &[NodeId],
+    params: &ParamsWithOrder,
+) -> Result<FastGraph, String> {
+    FastGraphBuilder::build_with_order_with_params(input_graph, order, params)
 }
 
 /// Calculates the shortest path from `source` to `target`.
@@ -136,6 +146,7 @@ mod tests {
     use crate::preparation_graph::PreparationGraph;
 
     use super::*;
+    use crate::fast_graph_builder::ParamsWithOrder;
 
     #[test]
     fn routing_on_random_graph() {
@@ -393,7 +404,7 @@ mod tests {
         // road network extracted from OSM data from Bremen, Germany using the road distance as weight
         run_performance_test(
             &InputGraph::from_file("meta/test_maps/bremen_dist.gr"),
-            &Params::default(),
+            &Params::new(0.1, 500, 2, 50),
             845493338,
             30265,
         )
@@ -406,7 +417,7 @@ mod tests {
         // road network extracted from OSM data from Bremen, Germany using the travel time as weight
         run_performance_test(
             &InputGraph::from_file("meta/test_maps/bremen_time.gr"),
-            &Params::default(),
+            &Params::new(0.1, 100, 2, 100),
             88104267255,
             30265,
         );
@@ -418,7 +429,7 @@ mod tests {
         println!("Running performance test for ballard");
         run_performance_test(
             &InputGraph::from_file("meta/test_maps/graph_ballard.gr"),
-            &Params::default(),
+            &Params::new(0.1, 100, 3, 100),
             28409159409,
             14992,
         );
@@ -430,7 +441,7 @@ mod tests {
         println!("Running performance test for 23rd");
         run_performance_test(
             &InputGraph::from_file("meta/test_maps/graph_23rd.gr"),
-            &Params::default(),
+            &Params::new(0.1, 100, 3, 100),
             19438403873,
             20421,
         );
@@ -442,7 +453,7 @@ mod tests {
         println!("Running performance test for South Seattle car");
         run_performance_test(
             &InputGraph::from_file("meta/test_maps/south_seattle_car.gr"),
-            &Params::default(),
+            &Params::new(0.1, 100, 10, 100),
             77479396,
             30805,
         );
@@ -450,13 +461,27 @@ mod tests {
 
     #[ignore]
     #[test]
-    fn run_performance_test_dist_fixed_ordering() {
+    fn run_performance_test_bremen_dist_fixed_ordering() {
         println!("Running performance test for Bremen dist (fixed node ordering)");
         run_performance_test_fixed_ordering(
             &InputGraph::from_file("meta/test_maps/bremen_dist.gr"),
             &Params::default(),
+            &ParamsWithOrder::default(),
             845493338,
             30265,
+        );
+    }
+
+    #[ignore]
+    #[test]
+    fn run_performance_test_south_seattle_fixed_ordering() {
+        println!("Running performance test for South Seattle car (fixed node ordering)");
+        run_performance_test_fixed_ordering(
+            &InputGraph::from_file("meta/test_maps/south_seattle_car.gr"),
+            &Params::new(0.1, 100, 10, 100),
+            &ParamsWithOrder::new(100),
+            77479396,
+            30805,
         );
     }
 
@@ -484,6 +509,7 @@ mod tests {
     fn run_performance_test_fixed_ordering(
         input_graph: &InputGraph,
         params: &Params,
+        params_with_order: &ParamsWithOrder,
         expected_checksum: usize,
         expected_num_not_found: usize,
     ) {
@@ -496,7 +522,10 @@ mod tests {
         );
         let order = get_node_ordering(&fast_graph);
         prepare_algo(
-            &mut |input_graph| fast_graph = prepare_with_order(input_graph, &order).unwrap(),
+            &mut |input_graph| {
+                fast_graph =
+                    prepare_with_order_with_params(input_graph, &order, params_with_order).unwrap()
+            },
             &input_graph,
         );
         print_fast_graph_stats(&fast_graph);

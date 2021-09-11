@@ -277,14 +277,14 @@ pub struct Params {
     pub max_settled_nodes_initial_relevance: usize,
     /// The maximum number of settled nodes per witness search performed when updating priorities
     /// of neighbor nodes after a node was contracted. The preparation time can strongly depend on
-    /// this value and even setting it to 0 might be feasible. Higher values (like 500+) should
+    /// this value and even setting it to 0 might be feasible. Higher values (like ~500+) should
     /// yield less shortcuts and faster query times at the cost of a longer preparation time. Lower
-    /// values (like 0-100) should yield faster preparation at the cost of slower query times and
+    /// values (like ~0-100) should yield faster preparation at the cost of slower query times and
     /// more shortcuts. To know for sure you should still make your own experiments for your
     /// specific graph.
     pub max_settled_nodes_neighbor_relevance: usize,
     /// The maximum number of settled nodes per witness search when contracting a node. Higher values
-    /// like 500+ mean less shortcuts (fast graph edges), slower preparation and faster queries while
+    /// like ~500+ mean less shortcuts (fast graph edges), slower preparation and faster queries while
     /// lower values mean more shortcuts, slower queries and faster preparation.
     pub max_settled_nodes_contraction: usize,
 }
@@ -306,13 +306,7 @@ impl Params {
     }
 
     pub fn default() -> Self {
-        Params {
-            hierarchy_depth_factor: 0.1,
-            edge_quotient_factor: 1.0,
-            max_settled_nodes_initial_relevance: 100,
-            max_settled_nodes_neighbor_relevance: 3,
-            max_settled_nodes_contraction: 100,
-        }
+        Params::new(0.1, 500, 100, 500)
     }
 }
 
