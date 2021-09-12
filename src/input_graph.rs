@@ -147,7 +147,7 @@ impl InputGraph {
     }
 
     fn sort(&mut self) {
-        self.edges.sort_by(|a, b| {
+        self.edges.sort_unstable_by(|a, b| {
             a.from
                 .cmp(&b.from)
                 .then(a.to.cmp(&b.to))
