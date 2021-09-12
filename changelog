@@ -1,5 +1,5 @@
 0.3.0 (not yet released)
-      breaking: add max_settled_nodes parameters to Params, important performance tuning for graphs with large-weight edges
+      breaking: add max_settled_nodes parameters to Params, important performance tuning for graphs with large-weight edges, #37
       add InputGraph::to_file, #35
       faster fast_graph building, 82e9a2ef417af6de1b2cb41bcee41b6302db1b4a
       allow passing &[T] instead of &Vec<T> in a few places, #32
