@@ -269,7 +269,15 @@ impl FastGraphBuilder {
 }
 
 pub struct Params {
+    /// Smaller values typically yield less shortcuts and a faster preparation time. The relation to
+    /// query speeds is less clear. For large values that yield a much higher number of shortcuts
+    /// queries become slow, but otherwise the query speed might only change by a small amount
+    /// when you change this parameter. The optimal value can only be found heuristically for your
+    /// specific graph and can even depend on the other parameters below. We recommend trying
+    /// different values between 0 and 1.
     pub hierarchy_depth_factor: f32,
+    /// This parameter is simply set to 1.0, because only it's relative size compared to
+    /// hierarchy_depth_factor plays a role.
     pub edge_quotient_factor: f32,
     /// The maximum number of settled nodes per witness search performed when priorities are
     /// calculated for all nodes initially. Since this does not take much time you should probably
