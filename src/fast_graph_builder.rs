@@ -272,20 +272,20 @@ pub struct Params {
     pub hierarchy_depth_factor: f32,
     pub edge_quotient_factor: f32,
     /// The maximum number of settled nodes per witness search performed when priorities are
-    /// calculated for all nodes initially. Since this does not take much time normally you should
-    /// probably keep the default.
+    /// calculated for all nodes initially. Since this does not take much time you should probably
+    /// keep the default.
     pub max_settled_nodes_initial_relevance: usize,
     /// The maximum number of settled nodes per witness search performed when updating priorities
     /// of neighbor nodes after a node was contracted. The preparation time can strongly depend on
-    /// this value and even setting it to 0 might be feasible. Higher values (like ~500+) should
-    /// yield less shortcuts and faster query times at the cost of a longer preparation time. Lower
-    /// values (like ~0-100) should yield faster preparation at the cost of slower query times and
-    /// more shortcuts. To know for sure you should still make your own experiments for your
-    /// specific graph.
+    /// this value and even setting it to a very small value like 0 or 1 might be feasible.
+    /// Higher values (like ~500+) should yield less shortcuts and faster query times at the cost of
+    /// a longer preparation time. Lower values (like ~0-100) should yield a faster preparation at
+    /// the cost of slower query times and more shortcuts. To know for sure you should still run
+    /// your own experiments for your specific graph.
     pub max_settled_nodes_neighbor_relevance: usize,
     /// The maximum number of settled nodes per witness search when contracting a node. Higher values
-    /// like ~500+ mean less shortcuts (fast graph edges), slower preparation and faster queries while
-    /// lower values mean more shortcuts, slower queries and faster preparation.
+    /// like ~500+ mean less shortcuts (fast graph edges), slower preparation and faster queries.
+    /// Lower values mean more shortcuts, slower queries and faster preparation.
     pub max_settled_nodes_contraction: usize,
 }
 
@@ -312,8 +312,8 @@ impl Params {
 
 pub struct ParamsWithOrder {
     /// The maximum number of settled nodes per witness search when contracting a node. Smaller
-    /// values mean slower queries, more shortcuts, but faster preparation time. Note that the
-    /// performance also can strongly depend on the relation between this parameter and
+    /// values mean slower queries, more shortcuts, but a faster preparation. Note that the
+    /// performance can also strongly depend on the relation between this parameter and
     /// Params::max_settled_nodes_contraction that was used to build the FastGraph and obtain the
     /// node ordering initially. In most cases you should use the same value for these two parameters.
     pub max_settled_nodes_contraction_with_order: usize,

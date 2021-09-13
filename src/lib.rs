@@ -403,6 +403,7 @@ mod tests {
         println!("Running performance test for Bremen dist");
         // road network extracted from OSM data from Bremen, Germany using the road distance as weight
         // prep: 190ms, query: 16μs, out: 68494, in: 68426
+        // todo: try to tune parameters
         run_performance_test(
             &InputGraph::from_file("meta/test_maps/bremen_dist.gr"),
             &Params::new(0.1, 500, 2, 50),
@@ -417,6 +418,7 @@ mod tests {
         println!("Running performance test for Bremen time");
         // road network extracted from OSM data from Bremen, Germany using the travel time as weight
         // prep: 256ms, query: 11μs, out: 64825, in: 65027
+        // todo: try to tune parameters
         run_performance_test(
             &InputGraph::from_file("meta/test_maps/bremen_time.gr"),
             &Params::new(0.1, 100, 2, 100),
@@ -430,6 +432,7 @@ mod tests {
     fn run_performance_test_ballard() {
         println!("Running performance test for ballard");
         // prep: 1150ms, query: 53μs, out: 43849, in: 43700
+        // todo: try to tune parameters
         run_performance_test(
             &InputGraph::from_file("meta/test_maps/graph_ballard.gr"),
             &Params::new(0.1, 100, 3, 100),
@@ -443,6 +446,7 @@ mod tests {
     fn run_performance_test_23rd() {
         println!("Running performance test for 23rd");
         // prep: 170ms, query: 23μs, out: 11478, in: 11236
+        // todo: try to tune parameters
         run_performance_test(
             &InputGraph::from_file("meta/test_maps/graph_23rd.gr"),
             &Params::new(0.1, 100, 3, 100),
@@ -456,6 +460,7 @@ mod tests {
     fn run_performance_test_south_seattle_car() {
         println!("Running performance test for South Seattle car");
         // prep: 877ms, query: 26μs, out: 68777, in: 68161
+        // todo: try to tune parameters
         run_performance_test(
             &InputGraph::from_file("meta/test_maps/south_seattle_car.gr"),
             &Params::new(0.1, 100, 10, 100),
@@ -469,6 +474,7 @@ mod tests {
     fn run_performance_test_bremen_dist_fixed_ordering() {
         println!("Running performance test for Bremen dist (fixed node ordering)");
         // prep: 340ms, prep_order: 64ms, query: 16μs, out: 66646, in: 66725
+        // todo: try to tune parameters
         run_performance_test_fixed_ordering(
             &InputGraph::from_file("meta/test_maps/bremen_dist.gr"),
             &Params::default(),
@@ -483,6 +489,7 @@ mod tests {
     fn run_performance_test_south_seattle_fixed_ordering() {
         println!("Running performance test for South Seattle car (fixed node ordering)");
         // prep: 811ms, prep order: 138ms, query: 27μs, out: 68777, in: 68161
+        // todo: try to tune parameters
         run_performance_test_fixed_ordering(
             &InputGraph::from_file("meta/test_maps/south_seattle_car.gr"),
             &Params::new(0.1, 100, 10, 100),
