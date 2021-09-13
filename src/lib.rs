@@ -27,7 +27,7 @@ pub use crate::fast_graph::FastGraph;
 pub use crate::fast_graph32::FastGraph32;
 pub use crate::fast_graph_builder::FastGraphBuilder;
 pub use crate::fast_graph_builder::Params;
-use crate::fast_graph_builder::ParamsWithOrder;
+pub use crate::fast_graph_builder::ParamsWithOrder;
 pub use crate::input_graph::Edge;
 pub use crate::input_graph::InputGraph;
 pub use crate::path_calculator::PathCalculator;
