@@ -131,7 +131,7 @@ pub fn deserialize_32<'de, D: Deserializer<'de>>(d: D) -> Result<FastGraph, D::E
 #[cfg(test)]
 mod tests {
     use std::error::Error;
-    use std::fs::{remove_file, File};
+    use std::fs::{remove_file, File, OpenOptions};
     use std::time::SystemTime;
 
     use rand::rngs::StdRng;
@@ -147,6 +147,7 @@ mod tests {
 
     use super::*;
     use crate::fast_graph_builder::ParamsWithOrder;
+    use std::io::Write;
 
     #[test]
     fn routing_on_random_graph() {
@@ -471,11 +472,114 @@ mod tests {
 
     #[ignore]
     #[test]
+    fn run_seattle() {
+        let ratio = 0.1;
+        let max_settled_nodes_initial_relevance = 100;
+        let nrel_vals: Vec<usize> = vec![
+            10,
+        ];
+        let ncontr: Vec<usize> = vec![
+            100
+        ];
+        let ratios: Vec<f32> = vec![
+            0.001, 0.002, 0.005, 0.007, 0.01, 0.015, 0.02, 0.05, 0.07, 0.1, 0.15, 0.2, 0.3, 0.5, 0.7, 1.0
+        ];
+        for max_settled_nodes_neighbor_relevance in nrel_vals {
+            for max_setttled_contraction in &ncontr {
+                for ratio in &ratios {
+                    let max_settled_nodes_contraction = *max_setttled_contraction;
+                    let max_settled_nodes_contraction_with_order = *max_setttled_contraction;
+                    println!(
+                        "max_settled_nodes_neighbor_relevance={}, max_settled_nodes_contraction={}, max_settled_nodes_contraction_with_order={}, ratio={}",
+                        max_settled_nodes_neighbor_relevance,
+                        max_settled_nodes_contraction,
+                        max_settled_nodes_contraction_with_order,
+                        *ratio
+                    );
+                    println!("Running performance test for Bike_graph");
+                    run_performance_test_fixed_ordering(
+                        "bike",
+                        &InputGraph::from_file("/home/me/abstreet_graphs/Bike_graph.gr"),
+                        &Params::new(
+                            *ratio,
+                            max_settled_nodes_initial_relevance,
+                            max_settled_nodes_neighbor_relevance,
+                            max_settled_nodes_contraction,
+                        ),
+                        &ParamsWithOrder::new(max_settled_nodes_contraction_with_order),
+                        167896060,
+                        24266,
+                    );
+
+                    println!("Running performance test for Bus_graph");
+                    run_performance_test_fixed_ordering(
+                        "bus",
+                        &InputGraph::from_file("/home/me/abstreet_graphs/Bus_graph.gr"),
+                        &Params::new(
+                            *ratio,
+                            max_settled_nodes_initial_relevance,
+                            max_settled_nodes_neighbor_relevance,
+                            max_settled_nodes_contraction,
+                        ),
+                        &ParamsWithOrder::new(max_settled_nodes_contraction_with_order),
+                        87914539,
+                        27029,
+                    );
+                    println!("Running performance test for Car_graph");
+                    run_performance_test_fixed_ordering(
+                        "car",
+                        &InputGraph::from_file("/home/me/abstreet_graphs/Car_graph.gr"),
+                        &Params::new(
+                            *ratio,
+                            max_settled_nodes_initial_relevance,
+                            max_settled_nodes_neighbor_relevance,
+                            max_settled_nodes_contraction,
+                        ),
+                        &ParamsWithOrder::new(max_settled_nodes_contraction_with_order),
+                        85178717,
+                        27295,
+                    );
+                    println!("Running performance test for Train_graph");
+                    run_performance_test_fixed_ordering(
+                        "train",
+                        &InputGraph::from_file("/home/me/abstreet_graphs/Train_graph.gr"),
+                        &Params::new(
+                            *ratio,
+                            max_settled_nodes_initial_relevance,
+                            max_settled_nodes_neighbor_relevance,
+                            max_settled_nodes_contraction,
+                        ),
+                        &ParamsWithOrder::new(max_settled_nodes_contraction_with_order),
+                        1993,
+                        99991,
+                    );
+                    println!("Running performance test walking_graph");
+                    run_performance_test_fixed_ordering(
+                        "walk",
+                        &InputGraph::from_file("/home/me/abstreet_graphs/walking_graph.gr"),
+                        &Params::new(
+                            *ratio,
+                            max_settled_nodes_initial_relevance,
+                            max_settled_nodes_neighbor_relevance,
+                            max_settled_nodes_contraction,
+                        ),
+                        &ParamsWithOrder::new(max_settled_nodes_contraction_with_order),
+                        379534322,
+                        21573,
+                    );
+                }
+            }
+        }
+    }
+
+    #[ignore]
+    #[test]
     fn run_performance_test_bremen_dist_fixed_ordering() {
         println!("Running performance test for Bremen dist (fixed node ordering)");
         // prep: 340ms, prep_order: 64ms, query: 16μs, out: 66646, in: 66725
         // todo: try to tune parameters
         run_performance_test_fixed_ordering(
+            "",
             &InputGraph::from_file("meta/test_maps/bremen_dist.gr"),
             &Params::default(),
             &ParamsWithOrder::default(),
@@ -491,6 +595,7 @@ mod tests {
         // prep: 811ms, prep order: 138ms, query: 27μs, out: 68777, in: 68161
         // todo: try to tune parameters
         run_performance_test_fixed_ordering(
+            "",
             &InputGraph::from_file("meta/test_maps/south_seattle_car.gr"),
             &Params::new(0.1, 100, 10, 100),
             &ParamsWithOrder::new(100),
@@ -521,6 +626,7 @@ mod tests {
     }
 
     fn run_performance_test_fixed_ordering(
+        name: &str,
         input_graph: &InputGraph,
         params: &Params,
         params_with_order: &ParamsWithOrder,
@@ -530,12 +636,17 @@ mod tests {
         let mut time = Stopwatch::start_new();
         let mut fast_graph = prepare_with_params(input_graph, params);
         time.stop();
-        println!(
-            "preparation time (heuristic order). {} ms",
-            time.elapsed_ms()
+        let prep_heur = time.elapsed_ms();
+        println!("preparation time (heuristic order). {} ms", prep_heur);
+        let mut path_calculator = PathCalculator::new(fast_graph.get_num_nodes());
+        let query_heur = do_run_performance_test(
+            &mut |s, t| path_calculator.calc_path(&fast_graph, s, t),
+            input_graph.get_num_nodes(),
+            expected_checksum,
+            expected_num_not_found,
         );
         let order = get_node_ordering(&fast_graph);
-        prepare_algo(
+        let prep_w_order = prepare_algo(
             &mut |input_graph| {
                 fast_graph =
                     prepare_with_order_with_params(input_graph, &order, params_with_order).unwrap()
@@ -544,12 +655,36 @@ mod tests {
         );
         print_fast_graph_stats(&fast_graph);
         let mut path_calculator = PathCalculator::new(fast_graph.get_num_nodes());
-        do_run_performance_test(
+        let query_w_order = do_run_performance_test(
             &mut |s, t| path_calculator.calc_path(&fast_graph, s, t),
             input_graph.get_num_nodes(),
             expected_checksum,
             expected_num_not_found,
         );
+        if !name.trim().is_empty() {
+            let mut file = OpenOptions::new()
+                .append(true)
+                .create(true)
+                .open(format!("seattle_neighbor_{}_new", name))
+                .unwrap();
+            writeln!(
+                &mut file,
+                "|{}|{}|{}|{}|{}|{}|{}|{}|{}|{}|{}|{}|",
+                input_graph.get_num_nodes(),
+                input_graph.get_num_edges(),
+                params.max_settled_nodes_neighbor_relevance,
+                params.max_settled_nodes_contraction,
+                params.hierarchy_depth_factor,
+                params_with_order.max_settled_nodes_contraction_with_order,
+                fast_graph.get_num_out_edges(),
+                fast_graph.get_num_in_edges(),
+                prep_heur,
+                query_heur,
+                prep_w_order,
+                query_w_order
+            )
+            .unwrap();
+        }
     }
 
     fn print_fast_graph_stats(fast_graph: &FastGraph) {
@@ -567,7 +702,7 @@ mod tests {
         );
     }
 
-    pub fn prepare_algo<F>(preparation: &mut F, input_graph: &InputGraph)
+    pub fn prepare_algo<F>(preparation: &mut F, input_graph: &InputGraph) -> usize
     where
         F: FnMut(&InputGraph),
     {
@@ -583,10 +718,9 @@ mod tests {
             "number of edges (input graph) ..... {}",
             input_graph.get_num_edges()
         );
-        println!(
-            "preparation time .................. {} ms",
-            time.elapsed_ms()
-        );
+        let t = time.elapsed_ms();
+        println!("preparation time .................. {} ms", t);
+        t as usize
     }
 
     fn do_run_performance_test<F>(
@@ -594,7 +728,8 @@ mod tests {
         num_nodes: usize,
         expected_checksum: usize,
         expected_num_not_found: usize,
-    ) where
+    ) -> usize
+    where
         F: FnMut(NodeId, NodeId) -> Option<ShortestPath>,
     {
         let num_queries = 100_000;
@@ -611,22 +746,24 @@ mod tests {
             time.stop();
             match path {
                 Some(path) => checksum += path.get_weight(),
-                None => num_not_found += 1,
+                None => {
+                    // println!("failed query: {} -> {}, no path found", source, target);
+                    num_not_found += 1
+                },
             }
         }
         println!(
             "total query time .................. {} ms",
             time.elapsed_ms()
         );
-        println!(
-            "query time on average ............. {} μs",
-            time.elapsed().as_micros() / (num_queries as u128)
-        );
+        let t = time.elapsed().as_micros() / (num_queries as u128);
+        println!("query time on average ............. {} μs", t);
         assert_eq!(expected_checksum, checksum, "invalid checksum");
         assert_eq!(
             expected_num_not_found, num_not_found,
             "invalid number of paths not found"
         );
+        t as usize
     }
 
     fn create_rng() -> StdRng {
