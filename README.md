@@ -127,6 +127,7 @@ For this to work `another_input_graph` must have the same number of nodes as `in
 |USA|time|9.8 min|872 μs|49.277.058|49.283.162|
 
 The shortest path calculation time was averaged over 100k random routing queries. The benchmarks were run using Rust 1.50.0
+The code for running these benchmarks can be found on the `benchmarks` branch.
 
 There are also some benchmarks using smaller maps included in the test suite. You can run them like this:
 ```shell
