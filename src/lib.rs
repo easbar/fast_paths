@@ -27,6 +27,7 @@ pub use crate::fast_graph::FastGraph;
 pub use crate::fast_graph32::FastGraph32;
 pub use crate::fast_graph_builder::FastGraphBuilder;
 pub use crate::fast_graph_builder::Params;
+pub use crate::fast_graph_builder::ParamsWithOrder;
 pub use crate::input_graph::Edge;
 pub use crate::input_graph::InputGraph;
 pub use crate::path_calculator::PathCalculator;
@@ -65,6 +66,15 @@ pub fn prepare_with_params(input_graph: &InputGraph, params: &Params) -> FastGra
 /// of the edge weights only.
 pub fn prepare_with_order(input_graph: &InputGraph, order: &[NodeId]) -> Result<FastGraph, String> {
     FastGraphBuilder::build_with_order(input_graph, order)
+}
+
+/// Like `prepare_with_order()`, but allows specifying some parameters used for the graph preparation
+pub fn prepare_with_order_with_params(
+    input_graph: &InputGraph,
+    order: &[NodeId],
+    params: &ParamsWithOrder,
+) -> Result<FastGraph, String> {
+    FastGraphBuilder::build_with_order_with_params(input_graph, order, params)
 }
 
 /// Calculates the shortest path from `source` to `target`.
@@ -136,6 +146,7 @@ mod tests {
     use crate::preparation_graph::PreparationGraph;
 
     use super::*;
+    use crate::fast_graph_builder::ParamsWithOrder;
 
     #[test]
     fn routing_on_random_graph() {
@@ -391,9 +402,11 @@ mod tests {
     fn run_performance_test_dist() {
         println!("Running performance test for Bremen dist");
         // road network extracted from OSM data from Bremen, Germany using the road distance as weight
+        // prep: 190ms, query: 16μs, out: 68494, in: 68426
+        // todo: try to tune parameters
         run_performance_test(
             &InputGraph::from_file("meta/test_maps/bremen_dist.gr"),
-            &Params::default(),
+            &Params::new(0.1, 500, 2, 50),
             845493338,
             30265,
         )
@@ -404,9 +417,11 @@ mod tests {
     fn run_performance_test_time() {
         println!("Running performance test for Bremen time");
         // road network extracted from OSM data from Bremen, Germany using the travel time as weight
+        // prep: 256ms, query: 11μs, out: 64825, in: 65027
+        // todo: try to tune parameters
         run_performance_test(
             &InputGraph::from_file("meta/test_maps/bremen_time.gr"),
-            &Params::default(),
+            &Params::new(0.1, 100, 2, 100),
             88104267255,
             30265,
         );
@@ -416,9 +431,11 @@ mod tests {
     #[test]
     fn run_performance_test_ballard() {
         println!("Running performance test for ballard");
+        // prep: 1150ms, query: 53μs, out: 43849, in: 43700
+        // todo: try to tune parameters
         run_performance_test(
             &InputGraph::from_file("meta/test_maps/graph_ballard.gr"),
-            &Params::new(0.01),
+            &Params::new(0.1, 100, 3, 100),
             28409159409,
             14992,
         );
@@ -428,9 +445,11 @@ mod tests {
     #[test]
     fn run_performance_test_23rd() {
         println!("Running performance test for 23rd");
+        // prep: 170ms, query: 23μs, out: 11478, in: 11236
+        // todo: try to tune parameters
         run_performance_test(
             &InputGraph::from_file("meta/test_maps/graph_23rd.gr"),
-            &Params::default(),
+            &Params::new(0.1, 100, 3, 100),
             19438403873,
             20421,
         );
@@ -518,9 +537,11 @@ mod tests {
     #[test]
     fn run_performance_test_south_seattle_car() {
         println!("Running performance test for South Seattle car");
+        // prep: 877ms, query: 26μs, out: 68777, in: 68161
+        // todo: try to tune parameters
         run_performance_test(
             &InputGraph::from_file("meta/test_maps/south_seattle_car.gr"),
-            &Params::default(),
+            &Params::new(0.1, 100, 10, 100),
             77479396,
             30805,
         );
@@ -528,22 +549,31 @@ mod tests {
 
     #[ignore]
     #[test]
-    fn run_performance_test_dist_fixed_ordering() {
+    fn run_performance_test_bremen_dist_fixed_ordering() {
         println!("Running performance test for Bremen dist (fixed node ordering)");
-        let input_graph = InputGraph::from_file("meta/test_maps/bremen_dist.gr");
-        let mut fast_graph = prepare(&input_graph);
-        let order = get_node_ordering(&fast_graph);
-        prepare_algo(
-            &mut |input_graph| fast_graph = prepare_with_order(input_graph, &order).unwrap(),
-            &input_graph,
-        );
-        print_fast_graph_stats(&fast_graph);
-        let mut path_calculator = PathCalculator::new(fast_graph.get_num_nodes());
-        do_run_performance_test(
-            &mut |s, t| path_calculator.calc_path(&fast_graph, s, t),
-            input_graph.get_num_nodes(),
+        // prep: 340ms, prep_order: 64ms, query: 16μs, out: 66646, in: 66725
+        // todo: try to tune parameters
+        run_performance_test_fixed_ordering(
+            &InputGraph::from_file("meta/test_maps/bremen_dist.gr"),
+            &Params::default(),
+            &ParamsWithOrder::default(),
             845493338,
             30265,
+        );
+    }
+
+    #[ignore]
+    #[test]
+    fn run_performance_test_south_seattle_fixed_ordering() {
+        println!("Running performance test for South Seattle car (fixed node ordering)");
+        // prep: 811ms, prep order: 138ms, query: 27μs, out: 68777, in: 68161
+        // todo: try to tune parameters
+        run_performance_test_fixed_ordering(
+            &InputGraph::from_file("meta/test_maps/south_seattle_car.gr"),
+            &Params::new(0.1, 100, 10, 100),
+            &ParamsWithOrder::new(100),
+            77479396,
+            30805,
         );
     }
 
@@ -556,6 +586,38 @@ mod tests {
         let mut fast_graph = FastGraph::new(1);
         prepare_algo(
             &mut |input_graph| fast_graph = prepare_with_params(input_graph, params),
+            &input_graph,
+        );
+        print_fast_graph_stats(&fast_graph);
+        let mut path_calculator = PathCalculator::new(fast_graph.get_num_nodes());
+        do_run_performance_test(
+            &mut |s, t| path_calculator.calc_path(&fast_graph, s, t),
+            input_graph.get_num_nodes(),
+            expected_checksum,
+            expected_num_not_found,
+        );
+    }
+
+    fn run_performance_test_fixed_ordering(
+        input_graph: &InputGraph,
+        params: &Params,
+        params_with_order: &ParamsWithOrder,
+        expected_checksum: usize,
+        expected_num_not_found: usize,
+    ) {
+        let mut time = Stopwatch::start_new();
+        let mut fast_graph = prepare_with_params(input_graph, params);
+        time.stop();
+        println!(
+            "preparation time (heuristic order). {} ms",
+            time.elapsed_ms()
+        );
+        let order = get_node_ordering(&fast_graph);
+        prepare_algo(
+            &mut |input_graph| {
+                fast_graph =
+                    prepare_with_order_with_params(input_graph, &order, params_with_order).unwrap()
+            },
             &input_graph,
         );
         print_fast_graph_stats(&fast_graph);
@@ -635,7 +697,7 @@ mod tests {
             time.elapsed_ms()
         );
         println!(
-            "query time on average ............. {} micros",
+            "query time on average ............. {} μs",
             time.elapsed().as_micros() / (num_queries as u128)
         );
         assert_eq!(expected_checksum, checksum, "invalid checksum");

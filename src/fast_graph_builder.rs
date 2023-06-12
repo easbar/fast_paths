@@ -35,8 +35,6 @@ use crate::witness_search::WitnessSearch;
 pub struct FastGraphBuilder {
     fast_graph: FastGraph,
     num_nodes: usize,
-    center_nodes_fwd: Vec<NodeId>,
-    center_nodes_bwd: Vec<NodeId>,
 }
 
 impl FastGraphBuilder {
@@ -44,8 +42,6 @@ impl FastGraphBuilder {
         FastGraphBuilder {
             fast_graph: FastGraph::new(input_graph.get_num_nodes()),
             num_nodes: input_graph.get_num_nodes(),
-            center_nodes_fwd: vec![],
-            center_nodes_bwd: vec![],
         }
     }
 
@@ -63,13 +59,25 @@ impl FastGraphBuilder {
         input_graph: &InputGraph,
         order: &[NodeId],
     ) -> Result<FastGraph, String> {
+        FastGraphBuilder::build_with_order_with_params(
+            input_graph,
+            order,
+            &ParamsWithOrder::default(),
+        )
+    }
+
+    pub fn build_with_order_with_params(
+        input_graph: &InputGraph,
+        order: &[NodeId],
+        params: &ParamsWithOrder,
+    ) -> Result<FastGraph, String> {
         if input_graph.get_num_nodes() != order.len() {
             return Err(String::from(
                 "The given order must have as many nodes as the input graph",
             ));
         }
         let mut builder = FastGraphBuilder::new(input_graph);
-        builder.run_contraction_with_order(input_graph, order);
+        builder.run_contraction_with_order(input_graph, order, params);
         Ok(builder.fast_graph)
     }
 
@@ -85,6 +93,7 @@ impl FastGraphBuilder {
                 &mut witness_search,
                 node,
                 0,
+                params.max_settled_nodes_initial_relevance,
             ) as Weight;
             queue.push(node, Reverse(priority));
         }
@@ -100,10 +109,9 @@ impl FastGraphBuilder {
                     node,
                     out_edge.adj_node,
                     out_edge.weight,
-                    INVALID_EDGE,
+                    out_edge.center_node,
                     INVALID_EDGE,
                 ));
-                self.center_nodes_fwd.push(out_edge.center_node);
             }
             self.fast_graph.first_edge_ids_fwd[rank + 1] = self.fast_graph.get_num_out_edges();
 
@@ -113,15 +121,19 @@ impl FastGraphBuilder {
                     node,
                     in_edge.adj_node,
                     in_edge.weight,
-                    INVALID_EDGE,
+                    in_edge.center_node,
                     INVALID_EDGE,
                 ));
-                self.center_nodes_bwd.push(in_edge.center_node)
             }
             self.fast_graph.first_edge_ids_bwd[rank + 1] = self.fast_graph.get_num_in_edges();
 
             self.fast_graph.ranks[node] = rank;
-            node_contractor::contract_node(&mut preparation_graph, &mut witness_search, node);
+            node_contractor::contract_node(
+                &mut preparation_graph,
+                &mut witness_search,
+                node,
+                params.max_settled_nodes_contraction,
+            );
             for neighbor in neighbors {
                 levels[neighbor] = max(levels[neighbor], levels[node] + 1);
                 let priority = node_contractor::calc_relevance(
@@ -130,6 +142,7 @@ impl FastGraphBuilder {
                     &mut witness_search,
                     neighbor,
                     levels[neighbor],
+                    params.max_settled_nodes_neighbor_relevance,
                 ) as Weight;
                 queue.change_priority(&neighbor, Reverse(priority));
             }
@@ -145,7 +158,12 @@ impl FastGraphBuilder {
         self.finish_contraction();
     }
 
-    fn run_contraction_with_order(&mut self, input_graph: &InputGraph, order: &[NodeId]) {
+    fn run_contraction_with_order(
+        &mut self,
+        input_graph: &InputGraph,
+        order: &[NodeId],
+        params: &ParamsWithOrder,
+    ) {
         let mut preparation_graph = PreparationGraph::from_input_graph(input_graph);
         let mut witness_search = WitnessSearch::new(self.num_nodes);
         for (rank, node) in order.iter().cloned().enumerate() {
@@ -157,10 +175,9 @@ impl FastGraphBuilder {
                     node,
                     out_edge.adj_node,
                     out_edge.weight,
-                    INVALID_EDGE,
+                    out_edge.center_node,
                     INVALID_EDGE,
                 ));
-                self.center_nodes_fwd.push(out_edge.center_node);
             }
             self.fast_graph.first_edge_ids_fwd[rank + 1] = self.fast_graph.get_num_out_edges();
 
@@ -169,15 +186,19 @@ impl FastGraphBuilder {
                     node,
                     in_edge.adj_node,
                     in_edge.weight,
-                    INVALID_EDGE,
+                    in_edge.center_node,
                     INVALID_EDGE,
                 ));
-                self.center_nodes_bwd.push(in_edge.center_node)
             }
             self.fast_graph.first_edge_ids_bwd[rank + 1] = self.fast_graph.get_num_in_edges();
 
             self.fast_graph.ranks[node] = rank;
-            node_contractor::contract_node(&mut preparation_graph, &mut witness_search, node);
+            node_contractor::contract_node(
+                &mut preparation_graph,
+                &mut witness_search,
+                node,
+                params.max_settled_nodes_contraction_with_order,
+            );
             debug!(
                 "contracted node {} / {}, num edges fwd: {}, num edges bwd: {}",
                 rank + 1,
@@ -192,10 +213,15 @@ impl FastGraphBuilder {
     fn finish_contraction(&mut self) {
         for i in 0..self.num_nodes {
             for edge_id in self.fast_graph.begin_out_edges(i)..self.fast_graph.end_out_edges(i) {
-                let c = self.center_nodes_fwd[edge_id];
+                // we temporarily stored the center node in the replaced_in_edge field. now we
+                // set the actual replaced edges
+                let c = self.fast_graph.edges_fwd[edge_id].replaced_in_edge;
                 if c == INVALID_NODE {
                     self.fast_graph.edges_fwd[edge_id].replaced_in_edge = INVALID_EDGE;
-                    self.fast_graph.edges_fwd[edge_id].replaced_out_edge = INVALID_EDGE;
+                    debug_assert_eq!(
+                        INVALID_EDGE,
+                        self.fast_graph.edges_fwd[edge_id].replaced_out_edge
+                    );
                 } else {
                     self.fast_graph.edges_fwd[edge_id].replaced_in_edge = self.get_in_edge_id(c, i);
                     self.fast_graph.edges_fwd[edge_id].replaced_out_edge =
@@ -206,10 +232,13 @@ impl FastGraphBuilder {
 
         for i in 0..self.num_nodes {
             for edge_id in self.fast_graph.begin_in_edges(i)..self.fast_graph.end_in_edges(i) {
-                let c = self.center_nodes_bwd[edge_id];
+                let c = self.fast_graph.edges_bwd[edge_id].replaced_in_edge;
                 if c == INVALID_NODE {
                     self.fast_graph.edges_bwd[edge_id].replaced_in_edge = INVALID_EDGE;
-                    self.fast_graph.edges_bwd[edge_id].replaced_out_edge = INVALID_EDGE;
+                    debug_assert_eq!(
+                        INVALID_EDGE,
+                        self.fast_graph.edges_bwd[edge_id].replaced_out_edge
+                    );
                 } else {
                     self.fast_graph.edges_bwd[edge_id].replaced_in_edge =
                         self.get_in_edge_id(c, self.fast_graph.edges_bwd[edge_id].adj_node);
@@ -240,20 +269,73 @@ impl FastGraphBuilder {
 }
 
 pub struct Params {
+    /// Smaller values typically yield less shortcuts and a faster preparation time. The relation to
+    /// query speeds is less clear. For large values that yield a much higher number of shortcuts
+    /// queries become slow, but otherwise the query speed might only change by a small amount
+    /// when you change this parameter. The optimal value can only be found heuristically for your
+    /// specific graph and can even depend on the other parameters below. We recommend trying
+    /// different values between 0 and 1.
     pub hierarchy_depth_factor: f32,
+    /// This parameter is simply set to 1.0, because only it's relative size compared to
+    /// hierarchy_depth_factor plays a role.
     pub edge_quotient_factor: f32,
+    /// The maximum number of settled nodes per witness search performed when priorities are
+    /// calculated for all nodes initially. Since this does not take much time you should probably
+    /// keep the default.
+    pub max_settled_nodes_initial_relevance: usize,
+    /// The maximum number of settled nodes per witness search performed when updating priorities
+    /// of neighbor nodes after a node was contracted. The preparation time can strongly depend on
+    /// this value and even setting it to a very small value like 0 or 1 might be feasible.
+    /// Higher values (like ~500+) should yield less shortcuts and faster query times at the cost of
+    /// a longer preparation time. Lower values (like ~0-100) should yield a faster preparation at
+    /// the cost of slower query times and more shortcuts. To know for sure you should still run
+    /// your own experiments for your specific graph.
+    pub max_settled_nodes_neighbor_relevance: usize,
+    /// The maximum number of settled nodes per witness search when contracting a node. Higher values
+    /// like ~500+ mean less shortcuts (fast graph edges), slower preparation and faster queries.
+    /// Lower values mean more shortcuts, slower queries and faster preparation.
+    pub max_settled_nodes_contraction: usize,
 }
 
 impl Params {
-    pub fn new(ratio: f32) -> Self {
+    pub fn new(
+        ratio: f32,
+        max_settled_nodes_initial_relevance: usize,
+        max_settled_nodes_neighbor_relevance: usize,
+        max_settled_nodes_contraction: usize,
+    ) -> Self {
         Params {
             hierarchy_depth_factor: ratio,
             edge_quotient_factor: 1.0,
+            max_settled_nodes_initial_relevance,
+            max_settled_nodes_neighbor_relevance,
+            max_settled_nodes_contraction,
         }
     }
 
     pub fn default() -> Self {
-        Params::new(0.1)
+        Params::new(0.1, 500, 100, 500)
+    }
+}
+
+pub struct ParamsWithOrder {
+    /// The maximum number of settled nodes per witness search when contracting a node. Smaller
+    /// values mean slower queries, more shortcuts, but a faster preparation. Note that the
+    /// performance can also strongly depend on the relation between this parameter and
+    /// Params::max_settled_nodes_contraction that was used to build the FastGraph and obtain the
+    /// node ordering initially. In most cases you should use the same value for these two parameters.
+    pub max_settled_nodes_contraction_with_order: usize,
+}
+
+impl ParamsWithOrder {
+    pub fn new(max_settled_nodes_contraction_with_order: usize) -> Self {
+        ParamsWithOrder {
+            max_settled_nodes_contraction_with_order,
+        }
+    }
+
+    pub fn default() -> Self {
+        ParamsWithOrder::new(100)
     }
 }
 

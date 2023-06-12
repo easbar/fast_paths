@@ -20,7 +20,7 @@
 use std::cmp;
 use std::fmt;
 use std::fs::File;
-use std::io::{BufRead, BufReader};
+use std::io::{BufRead, BufReader, BufWriter, Write};
 
 #[cfg(test)]
 use rand::rngs::StdRng;
@@ -65,6 +65,17 @@ impl InputGraph {
         InputGraph::read_from_file(filename)
     }
 
+    /// Writes the input graph to a text file, using the following format:
+    /// a <from> <to> <weight>
+    /// Mostly used for performance testing.
+    pub fn to_file(&self, filename: &str) -> Result<(), std::io::Error> {
+        let mut f = BufWriter::new(File::create(filename)?);
+        for edge in self.get_edges() {
+            writeln!(f, "a {} {} {}", edge.from, edge.to, edge.weight)?;
+        }
+        Ok(())
+    }
+
     /// Reads an input graph from a text file, using the DIMACS format:
     /// http://users.diag.uniroma1.it/challenge9/format.shtml#graph
     ///
@@ -82,6 +93,21 @@ impl InputGraph {
     /// Mostly used for performance testing.
     pub fn from_dimacs_file(filename: &str) -> Self {
         InputGraph::read_from_dimacs(filename)
+    }
+
+    /// Writes the input graph to a text file, using the DIMACS format:
+    /// p sp <num_nodes> <num_edges>
+    /// a <from> <to> <weight>
+    /// Note that <from> and <to> are 1-based, so they are incremented by one compared to the
+    /// node IDs used by internally.
+    /// Mostly used for performance testing.
+    pub fn to_dimacs_file(&self, filename: &str) -> Result<(), std::io::Error> {
+        let mut f = BufWriter::new(File::create(filename)?);
+        writeln!(f, "p sp {} {}", self.get_num_nodes(), self.get_num_edges())?;
+        for edge in self.get_edges() {
+            writeln!(f, "a {} {} {}", edge.from + 1, edge.to + 1, edge.weight)?;
+        }
+        Ok(())
     }
 
     pub fn add_edge(&mut self, from: NodeId, to: NodeId, weight: Weight) -> usize {
@@ -121,7 +147,7 @@ impl InputGraph {
     }
 
     fn sort(&mut self) {
-        self.edges.sort_by(|a, b| {
+        self.edges.sort_unstable_by(|a, b| {
             a.from
                 .cmp(&b.from)
                 .then(a.to.cmp(&b.to))
