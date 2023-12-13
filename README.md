@@ -119,14 +119,14 @@ For this to work `another_input_graph` must have the same number of nodes as `in
 
 |graph|metric|preparation time|average query time|out edges|in edges|
 |-|-|-|-|-|-|
-|NY city|distance|13 s|100 μs|747.555|747.559|
-|CAL&NV|distance|57 s|244 μs|4.147.109|4.147.183|
-|USA|distance|17 min|1433 μs|52.617.216|52.617.642|
-|NY city|time|9 s|55 μs|706.053|706.084|
-|CAL&NV|time|42 s|148 μs|3.975.276|3.975.627|
-|USA|time|9.8 min|872 μs|49.277.058|49.283.162|
+|NY city|distance|9 s|55 μs|747.555|747.559|
+|CAL&NV|distance|36 s|103 μs|4.147.109|4.147.183|
+|USA|distance|10.6 min|630 μs|52.617.216|52.617.642|
+|NY city|time|6 s|26 μs|706.053|706.084|
+|CAL&NV|time|24 s|60 μs|3.975.276|3.975.627|
+|USA|time|5.5 min|305 μs|49.277.058|49.283.162|
 
-The shortest path calculation time was averaged over 100k random routing queries. The benchmarks were run using Rust 1.50.0
+The shortest path calculation time was averaged over 100k random routing queries. The benchmarks were run on a Macbook Pro M1 Max using Rust 1.74.1.
 The code for running these benchmarks can be found on the `benchmarks` branch.
 
 There are also some benchmarks using smaller maps included in the test suite. You can run them like this:
