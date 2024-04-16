@@ -109,7 +109,7 @@ For this to work `another_input_graph` must have the same number of nodes as `in
  
 ### Benchmarks
 
-*FastPaths* was run on a single core on a consumer-grade laptop using the road networks provided for the [DIMACS implementation challenge graphs](http://users.diag.uniroma1.it/challenge9/download.shtml). The following graphs were used for the benchmark:
+*FastPaths* was run on a single core on a consumer-grade laptop using the road networks provided for the [DIMACS implementation challenge graphs](http://www.diag.uniroma1.it/~challenge9/download.shtml). The following graphs were used for the benchmark:
 
 |area|number of nodes|number of edges|
 |-|-|-|
