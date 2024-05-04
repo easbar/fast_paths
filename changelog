@@ -1,4 +1,4 @@
-0.3.0 (not yet released)
+1.0.0 [May 4th 2024]
       smaller package size (excluded test maps)
       breaking: add max_settled_nodes parameters to Params, important performance tuning for graphs with large-weight edges, #37
       add InputGraph::to_file, #35

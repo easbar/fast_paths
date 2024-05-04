@@ -1,6 +1,6 @@
 [package]
 name = "fast_paths"
-version = "0.3.0-SNAPSHOT"
+version = "1.0.0"
 authors = ["easbar <easbar.mail@posteo.net>"]
 edition = "2018"
 description = "Fast shortest path calculations on directed graphs made possible by pre-processing the graph using Contraction Hierarchies"
