@@ -1,0 +1,22 @@
+name: Test
+
+on:
+  push:
+    branches: [ "master" ]
+  pull_request:
+    branches: [ "master" ]
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - name: Check formatting
+      run: cargo fmt -- --check
+    - name: Run tests
+      run: cargo test --release -- --nocapture
+    - name: Run performance tests
+      run: export RUST_TEST_THREADS=1; cargo test --release -- --ignored --nocapture
