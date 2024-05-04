@@ -7,6 +7,11 @@ description = "Fast shortest path calculations on directed graphs made possible 
 repository = "https://github.com/easbar/fast_paths"
 categories = ["algorithms", "data-structures", "science"]
 license = "MIT/Apache-2.0"
+exclude = [
+    ".github/*",
+    ".gitignore",
+    "meta/*"
+]
 
 [badges]
 travis-ci = { repository = "easbar/fast_paths", branch = "master" }
