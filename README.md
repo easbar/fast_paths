@@ -10,7 +10,7 @@ In `Cargo.toml`
 
 ```toml
 [dependencies]
-fast_paths = "0.2.0"
+fast_paths = "1.0.0"
 
 ```
 ### Basic usage
